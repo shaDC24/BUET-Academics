@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seq2Seq & Attention — সম্পূর্ণ গাইড</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@700;900&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --card: #151d2e;
+    --border: #1e2d45;
+    --enc: #10b981;
+    --dec: #8b5cf6;
+    --attn: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --heading: #f8fafc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans Bengali', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 15px;
+  }
+
+  /* ===== HEADER ===== */
+  .hero {
+    background: linear-gradient(135deg, #0a0e1a 0%, #0d1b35 50%, #0a0e1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 32px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(16,185,129,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(16,185,129,0.15);
+    border: 1px solid rgba(16,185,129,0.4);
+    color: var(--enc);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    color: var(--heading);
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  .hero h1 span { color: var(--enc); }
+  .hero p {
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  /* ===== NAV ===== */
+  .nav {
+    display: flex;
+    gap: 4px;
+    padding: 12px 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active {
+    background: var(--bg3);
+    border-color: var(--enc);
+    color: var(--enc);
+  }
+
+  /* ===== SECTIONS ===== */
+  .section { display: none; padding: 32px 24px; max-width: 960px; margin: 0 auto; }
+  .section.active { display: block; }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title .icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  /* ===== ACCENT BOXES ===== */
+  .box {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .box-green { background: rgba(16,185,129,0.1); border-left: 3px solid var(--enc); }
+  .box-purple { background: rgba(139,92,246,0.1); border-left: 3px solid var(--dec); }
+  .box-yellow { background: rgba(245,158,11,0.1); border-left: 3px solid var(--attn); }
+  .box-red { background: rgba(239,68,68,0.1); border-left: 3px solid var(--red); }
+  .box-blue { background: rgba(59,130,246,0.1); border-left: 3px solid var(--blue); }
+
+  /* ===== FLOW DIAGRAM ===== */
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .flow-box {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 80px;
+  }
+  .flow-enc { background: rgba(16,185,129,0.2); border: 1px solid var(--enc); color: var(--enc); }
+  .flow-dec { background: rgba(139,92,246,0.2); border: 1px solid var(--dec); color: var(--dec); }
+  .flow-attn { background: rgba(245,158,11,0.2); border: 1px solid var(--attn); color: var(--attn); }
+  .flow-data { background: rgba(59,130,246,0.2); border: 1px solid var(--blue); color: var(--blue); }
+  .flow-arrow { color: var(--muted); font-size: 18px; }
+
+  /* ===== MATH ===== */
+  .math {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin: 10px 0;
+    font-size: 13px;
+    color: var(--cyan);
+    overflow-x: auto;
+  }
+
+  /* ===== TABLE ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 12px 0;
+  }
+  th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* ===== TIMELINE ===== */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: '';
+    position: absolute; left: 9px; top: 6px; bottom: 6px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--enc), var(--dec));
+  }
+  .tl-item {
+    position: relative;
+    margin-bottom: 22px;
+  }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -23px; top: 6px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--enc);
+    border: 2px solid var(--bg);
+  }
+  .tl-item.dec::before { background: var(--dec); }
+  .tl-item.attn::before { background: var(--attn); }
+  .tl-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--enc);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .tl-item.dec .tl-label { color: var(--dec); }
+  .tl-item.attn .tl-label { color: var(--attn); }
+
+  /* ===== GRID ===== */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ===== SIMULATION STEP ===== */
+  .sim-step {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 10px 0;
+  }
+  .sim-step-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .step-enc { background: rgba(16,185,129,0.2); color: var(--enc); border: 1px solid var(--enc); }
+  .step-dec { background: rgba(139,92,246,0.2); color: var(--dec); border: 1px solid var(--dec); }
+  .step-attn { background: rgba(245,158,11,0.2); color: var(--attn); border: 1px solid var(--attn); }
+
+  /* ===== Q SECTION ===== */
+  .q-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin: 10px 0;
+    transition: border-color 0.2s;
+  }
+  .q-item:hover { border-color: rgba(59,130,246,0.4); }
+  .q-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .q-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 8px;
+  }
+  .q-hint {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .q-tag {
+    display: inline-block;
+    background: rgba(59,130,246,0.15);
+    border: 1px solid rgba(59,130,246,0.3);
+    color: var(--blue);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 6px;
+  }
+  .q-tag.hard { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: var(--red); }
+  .q-tag.medium { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3); color: var(--attn); }
+
+  /* ===== HIGHLIGHT ===== */
+  .hl-enc { color: var(--enc); font-weight: 600; }
+  .hl-dec { color: var(--dec); font-weight: 600; }
+  .hl-attn { color: var(--attn); font-weight: 600; }
+  .hl-red { color: var(--red); font-weight: 600; }
+  .hl-cyan { color: var(--cyan); font-weight: 600; }
+  .hl-blue { color: var(--blue); font-weight: 600; }
+
+  /* ===== ATTENTION MATRIX ===== */
+  .attn-matrix { display: grid; gap: 3px; margin: 16px 0; }
+  .attn-row { display: flex; gap: 3px; align-items: center; }
+  .attn-cell {
+    width: 52px; height: 36px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    transition: transform 0.2s;
+    cursor: default;
+  }
+  .attn-cell:hover { transform: scale(1.1); z-index: 1; }
+  .attn-label {
+    width: 60px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    padding-right: 8px;
+  }
+  .attn-col-labels { display: flex; gap: 3px; margin-left: 68px; margin-bottom: 4px; }
+  .attn-col-label { width: 52px; text-align: center; font-size: 11px; color: var(--muted); }
+
+  /* ===== DIVIDER ===== */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 24px 0;
+  }
+
+  p { margin-bottom: 10px; }
+  ul, ol { padding-left: 20px; margin-bottom: 10px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--heading); }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg3);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--cyan);
+  }
+
+  .section-intro {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    padding: 12px 16px;
+    background: var(--bg3);
+    border-radius: 8px;
+    border-left: 3px solid var(--blue);
+  }
+
+  .big-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--enc);
+    opacity: 0.15;
+    position: absolute;
+    top: 8px; right: 16px;
+    pointer-events: none;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">SEQ2SEQ · ATTENTION · NMT</div>
+  <h1>Neural Machine <span>Translation</span></h1>
+  <p>Seq2Seq থেকে Attention পর্যন্ত — সম্পূর্ণ বাংলা গাইড · Simulation সহ</p>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="show('why')">① কেন পড়ছি?</button>
+  <button class="nav-btn" onclick="show('vanilla')">② Vanilla Encoder-Decoder</button>
+  <button class="nav-btn" onclick="show('attention')">③ Attention Architecture</button>
+  <button class="nav-btn" onclick="show('simulation')">④ Simulation (হাতে-কলমে)</button>
+  <button class="nav-btn" onclick="show('questions')">⑤ Professor Questions</button>
+</nav>
+
+<!-- ====================================================== -->
+<!-- SECTION 1: WHY -->
+<!-- ====================================================== -->
+<div class="section active" id="why">
+  <div class="section-intro">
+    তুমি RNN → LSTM → GRU শিখেছ। এখন প্রশ্ন — এই সব জানার পরেও Seq2Seq আলাদা করে কেন পড়তে হবে? এবং Attention কেন দরকার?
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(16,185,129,0.2)">🧠</div>
+      RNN/LSTM শেখার পরেও সমস্যা কোথায়?
+    </div>
+    <p>তুমি LSTM দিয়ে <strong>sentiment classification</strong> বা <strong>text generation</strong> করতে পারো — এগুলো fixed-to-sequence বা sequence-to-fixed length কাজ।</p>
+    <div class="box box-red">
+      <strong>🚨 আসল সমস্যা:</strong> Machine Translation-এ input sequence-এর length এবং output sequence-এর length <span class="hl-red">সম্পূর্ণ আলাদা হতে পারে</span>।<br><br>
+      উদাহরণ: "Think about it" (৩টি word) → "ওটা ভাবো" (২টি word)<br>
+      "Come in" (২টি word) → "ভিতরে এসো" (২টি word)<br><br>
+      Plain RNN/LSTM এই <strong>variable-length to variable-length</strong> mapping করতে পারে না!
+    </div>
+    <div class="divider"></div>
+    <p>তোমার নোটেও লেখা আছে:</p>
+    <div class="box box-green">
+      Tabular → RNN<br>
+      Image data → CNN<br>
+      Sequential/Textual → RNN (LSTMs, GRUs)<br>
+      <strong>Seq2Seq (machine translation) → Variable length handle করাটা Tough!</strong>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(59,130,246,0.2)">📦</div>
+      Data Type অনুযায়ী Model কেন আলাদা?
+    </div>
+    <div class="grid-2">
+      <div class="box box-blue">
+        <strong>Tabular Data</strong><br>Fixed features → Fixed output<br>Simple feedforward বা RNN
+      </div>
+      <div class="box box-blue">
+        <strong>Image Data</strong><br>Spatial patterns → CNN<br>Fixed grid → Fixed class
+      </div>
+      <div class="box box-green">
+        <strong>Sequence Data (one-way)</strong><br>Words → Sentiment<br>LSTM/GRU যথেষ্ট
+      </div>
+      <div class="box box-red">
+        <strong>Sequence → Sequence</strong><br>English → Bangla<br>Special architecture দরকার!
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">⚡</div>
+      Attention কেন পড়তে হলো? (The Bottleneck Problem)
+    </div>
+    <p>Encoder-Decoder architecture দিয়ে Seq2Seq সমস্যা solve হলো ঠিকই, কিন্তু একটা নতুন সমস্যা এলো:</p>
+    <div class="box box-red">
+      <strong>🍾 Context Vector Bottleneck:</strong><br>
+      Encoder পুরো input sentence-এর সব information মাত্র <strong>একটা fixed-size vector</strong> (ht, ct) এ compress করে দেয়। Long sentence হলে এই ছোট্ট vector সব information ধরে রাখতে পারে না!<br><br>
+      যেমন: ৫০ word-এর একটা sentence translate করতে হবে। Encoder শুধু শেষের hidden state পাঠালে প্রথমের word-এর information হারিয়ে যায়।
+    </div>
+    <div class="box box-yellow">
+      <strong>💡 Attention Solution:</strong><br>
+      Attention mechanism বলে — "শুধু শেষের hidden state না, সব timestep-এর hidden state decoder-এ পাঠাও। Decoder নিজেই dynamically decide করবে কোন timestep-এর দিকে কতটা focus করতে হবে।"
+    </div>
+    <div class="timeline" style="margin-top:20px">
+      <div class="tl-item">
+        <div class="tl-label">STEP 1 — RNN/LSTM</div>
+        Sequence data process করতে শিখলাম। Fixed-length output।
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">STEP 2 — Seq2Seq (Encoder-Decoder)</div>
+        Variable-length input → Variable-length output handle করতে শিখলাম।
+      </div>
+      <div class="tl-item dec">
+        <div class="tl-label">STEP 3 — Problem!</div>
+        Long sentence-এ Context Vector bottleneck। Information loss।
+      </div>
+      <div class="tl-item attn">
+        <div class="tl-label">STEP 4 — Attention Mechanism</div>
+        সব encoder hidden states ব্যবহার। Dynamic focus। Long sentence-এও accurate translation।
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- SECTION 2: VANILLA ENCODER-DECODER -->
+<!-- ====================================================== -->
+<div class="section" id="vanilla">
+  <div class="section-intro">
+    Vanilla (Plain) Encoder-Decoder Architecture — কোনো Attention ছাড়া। End-to-end complete flow।
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(16,185,129,0.2)">🔷</div>
+      Architecture Overview
+    </div>
+    <div class="flow">
+      <div class="flow-box flow-data">Input<br><small>"Think about it"</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-data">One-Hot /<br>Embedding</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-enc">Encoder<br>(LSTM)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-enc">Context<br>Vector<br>(ht, ct)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-dec">Decoder<br>(LSTM)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-dec">Softmax<br>Output</div>
+    </div>
+  </div>
+
+  <!-- ENCODER -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(16,185,129,0.2)">🔒</div>
+      <span class="hl-enc">ENCODER</span> — বিস্তারিত
+    </div>
+    <p>Encoder হলো একটি LSTM যেটি input sentence-কে token by token (word by word) process করে।</p>
+    
+    <div class="box box-green">
+      <strong>Encoder কী করে?</strong><br>
+      ১. প্রতিটি word-কে one-hot বা embedding vector-এ convert করে।<br>
+      ২. LSTM-এর মাধ্যমে sequentially process করে।<br>
+      ৩. প্রতিটি timestep-এ একটা hidden state (ht) এবং cell state (ct) তৈরি করে।<br>
+      ৪. কিন্তু intermediate outputs <strong>ignore করা হয়</strong>।<br>
+      ৫. শুধু <strong>final ht এবং ct</strong> context vector হিসেবে decoder-কে দেওয়া হয়।
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-label">t=1 → "Think" input করো</div>
+        LSTM: (h₀, c₀) + x₁ → (h₁, c₁). Output ignore।
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">t=2 → "about" input করো</div>
+        LSTM: (h₁, c₁) + x₂ → (h₂, c₂). Output ignore।
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">t=3 → "it" input করো</div>
+        LSTM: (h₂, c₂) + x₃ → (h₃, c₃). Output ignore।
+      </div>
+      <div class="tl-item dec">
+        <div class="tl-label">Final → Context Vector!</div>
+        (h₃, c₃) = Context Vector → Decoder-এ পাঠানো হয়।
+      </div>
+    </div>
+
+    <div class="math">
+      Encoder final state: h_T, c_T  (T = last timestep)
+      Context Vector = (h_T, c_T) = পুরো input sequence-এর "memory"
+    </div>
+  </div>
+
+  <!-- DECODER -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(139,92,246,0.2)">🔓</div>
+      <span class="hl-dec">DECODER</span> — বিস্তারিত
+    </div>
+    <p>Decoder-ও একটি LSTM। এটি Encoder-এর Context Vector (ht, ct) দিয়ে শুরু করে এবং target language-এ একটি একটি করে word generate করে।</p>
+
+    <div class="box box-purple">
+      <strong>Decoder কীভাবে কাজ করে?</strong><br>
+      ১. প্রথম input: <code>&lt;START&gt;</code> token।<br>
+      ২. Initial hidden state: Encoder-এর h_T এবং c_T।<br>
+      ৩. প্রতিটি timestep-এ Softmax layer দিয়ে পরের word predict করে।<br>
+      ৪. যে word predict হয় সেটাই পরের timestep-এ input হয়।<br>
+      ৫. <code>&lt;END&gt;</code> token predict হলে থামে।
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item dec">
+        <div class="tl-label">t=1 → &lt;START&gt; input</div>
+        (h₃, c₃) + &lt;START&gt; → Softmax → "ওটা" predict
+      </div>
+      <div class="tl-item dec">
+        <div class="tl-label">t=2 → "ওটা" input</div>
+        (h_d1, c_d1) + "ওটা" → Softmax → "ভাবো" predict
+      </div>
+      <div class="tl-item dec">
+        <div class="tl-label">t=3 → "ভাবো" input</div>
+        (h_d2, c_d2) + "ভাবো" → Softmax → &lt;END&gt; predict → থামো!
+      </div>
+    </div>
+  </div>
+
+  <!-- TRAINING -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(239,68,68,0.2)">🎯</div>
+      Training Process — Loss ও Backpropagation
+    </div>
+    
+    <div class="box box-blue">
+      <strong>Teacher Forcing কী?</strong><br>
+      Training-এর সময় Decoder-এ previous timestep-এর prediction-এর বদলে <strong>actual correct word</strong> input হিসেবে দেওয়া হয়। এতে training faster হয় কিন্তু inference-এ actual prediction ব্যবহার হয়।
+    </div>
+
+    <p><strong>Loss Function:</strong> Categorical Cross Entropy (multiclass classification)</p>
+    <div class="math">
+      L = - Σ (i=1 to N) [ y_true_i × log(y_pred_i) ]
+
+      উদাহরণ:
+      y_true = [0, 1, 0, 0, 0, 0]  (সঠিক word = "ওটা")
+      y_pred = [0.1, 0.6, 0.1, 0.05, 0.1, 0.05]  (softmax output)
+      
+      L = -1 × log(0.6) = -(-0.51) = 0.51
+    </div>
+
+    <div class="flow">
+      <div class="flow-box flow-data">Initial Weights<br>(Random)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-enc">Forward<br>Propagation</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-dec">Loss<br>Calculate</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-attn">Gradient<br>Calculate</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box flow-data">Weight<br>Update (Adam)</div>
+      <div class="flow-arrow">↩</div>
+    </div>
+
+    <p style="margin-top:12px">Loss calculate করা হয় <code>&lt;END&gt;</code> token পাওয়ার পরে। তারপর gradient calculate করে backpropagation চালানো হয় এবং weights update হয়।</p>
+  </div>
+
+  <!-- IMPROVEMENTS -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">⬆️</div>
+      Vanilla Architecture-এর ৩টি Improvement
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="box box-yellow">
+          <strong>1️⃣ Embeddings</strong><br>
+          One-hot vector-এর বদলে dense embedding ব্যবহার। Word2Vec-এর মতো pretrained embedding বা model-এর সাথে jointly train করা embedding। Lower dimension, richer meaning।
+        </div>
+        <div class="box box-yellow">
+          <strong>2️⃣ Deep LSTMs</strong><br>
+          Single layer LSTM-এর বদলে multiple stacked LSTM layers। Long-term dependency ভালো capture করে। Word → Sentence → Paragraph level hierarchy।
+        </div>
+      </div>
+      <div>
+        <div class="box box-yellow">
+          <strong>3️⃣ Reversing Input</strong><br>
+          Input sequence উল্টো করে দাও। "Think about it" → "it about Think"। প্রথম word-এর gradient propagate করা easier হয়। Short-term dependencies আরও ভালো কাজ করে।
+        </div>
+        <div class="box box-red" style="margin-top:0">
+          <strong>⚠️ তবুও সমস্যা:</strong><br>
+          এই সব improvement-এর পরেও long sentence-এর জন্য Context Vector Bottleneck রয়েই যায়। তাই Attention দরকার।
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- SECTION 3: ATTENTION -->
+<!-- ====================================================== -->
+<div class="section" id="attention">
+  <div class="section-intro">
+    Attention Mechanism সহ Encoder-Decoder — Complete Architecture।
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">👁️</div>
+      Vanilla vs Attention — পার্থক্য
+    </div>
+    <div class="grid-2">
+      <div>
+        <strong class="hl-enc">Vanilla Encoder-Decoder:</strong>
+        <div class="box box-green" style="margin-top:8px">
+          Decoder i-th timestep input:<br>
+          <code>[y_{i-1}, s_{i-1}]</code><br><br>
+          শুধু previous output আর previous hidden state
+        </div>
+      </div>
+      <div>
+        <strong class="hl-attn">Attention Encoder-Decoder:</strong>
+        <div class="box box-yellow" style="margin-top:8px">
+          Decoder i-th timestep input:<br>
+          <code>[y_{i-1}, s_{i-1}, <strong>C_i</strong>]</code><br><br>
+          অতিরিক্ত: Dynamic Context Vector C_i!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">📡</div>
+      Attention-এর মূল ধারণা
+    </div>
+    <p>Vanilla model-এ Encoder শুধু শেষের hidden state পাঠায়। কিন্তু Attention model-এ:</p>
+    <div class="box box-yellow">
+      <strong>Encoder সব timestep-এর hidden state পাঠায়!</strong><br>
+      যদি input "turn off the lights" (৪টি word) হয়, তাহলে h₁, h₂, h₃, h₄ — সব পাঠায়।<br><br>
+      Decoder প্রতিটি timestep-এ নিজেই calculate করে কোন encoder hidden state-গুলো কতটা গুরুত্বপূর্ণ।
+    </div>
+
+    <p>তোমার নোটের উদাহরণ: "turn off the lights" → হিন্দিতে "লাইট বন্ধ করো"</p>
+    <ul>
+      <li>Decoder যখন "লাইট" generate করছে → encoder-এর "lights" timestep-এর দিকে বেশি attention</li>
+      <li>Decoder যখন "বন্ধ" generate করছে → encoder-এর "off" timestep-এর দিকে বেশি attention</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">🧮</div>
+      Attention Weight (α) Calculation — Step by Step
+    </div>
+
+    <div class="box box-blue">
+      <strong>Notation:</strong><br>
+      • <code>h_j</code> = Encoder-এর j-th timestep hidden state<br>
+      • <code>s_{i-1}</code> = Decoder-এর (i-1)-th timestep hidden state (previous)<br>
+      • <code>α_{ij}</code> = Decoder-এর i-th timestep যখন Encoder-এর j-th word-এর দিকে কতটা focus করবে<br>
+      • <code>C_i</code> = Decoder-এর i-th timestep-এর জন্য context vector
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item attn">
+        <div class="tl-label">STEP 1 — Score Calculate</div>
+        <p>Alignment score calculate করো: <code>e_{ij} = f(h_j, s_{i-1})</code></p>
+        <p>f হলো একটা small ANN (Artificial Neural Network) — যা universal function approximator। এটা encoder এবং decoder hidden state নিয়ে একটা scalar score দেয়।</p>
+        <div class="math">e_{ij} = ANN(h_j, s_{i-1})  → একটা number (score)</div>
+      </div>
+      <div class="tl-item attn">
+        <div class="tl-label">STEP 2 — Softmax দিয়ে Normalize</div>
+        <p>সব score-গুলোকে softmax দিয়ে probability-তে convert করো (sum = 1):</p>
+        <div class="math">
+          α_{ij} = softmax(e_{ij})
+                 = exp(e_{ij}) / Σ_k exp(e_{ik})
+
+          সব α_{ij} এর sum = 1  (i fixed রেখে)
+        </div>
+      </div>
+      <div class="tl-item attn">
+        <div class="tl-label">STEP 3 — Weighted Sum = Context Vector</div>
+        <p>Attention weights দিয়ে encoder hidden states-এর weighted sum নাও:</p>
+        <div class="math">
+          C_i = Σ_j (α_{ij} × h_j)
+             = α_{i1}×h₁ + α_{i2}×h₂ + α_{i3}×h₃ + α_{i4}×h₄
+        </div>
+        <p>C_i একটি vector (h-এর মতো same dimension)।</p>
+      </div>
+      <div class="tl-item dec">
+        <div class="tl-label">STEP 4 — Decoder-এ Use করো</div>
+        <div class="math">
+          Decoder input at step i = [y_{i-1}, s_{i-1}, C_i]
+          তারপর Softmax → word predict
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">📊</div>
+      Attention Weight Matrix — Visual
+    </div>
+    <p>তোমার নোটের টেবিলটা ছিল এরকম: Decoder output (rows) × Encoder input (columns)</p>
+    
+    <div class="attn-col-labels">
+      <div class="attn-col-label">turn</div>
+      <div class="attn-col-label">off</div>
+      <div class="attn-col-label">the</div>
+      <div class="attn-col-label">lights</div>
+    </div>
+    <div class="attn-matrix">
+      <div class="attn-row">
+        <div class="attn-label">লাইট</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.15);color:#fbbf24">α₁₁</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.15);color:#fbbf24">α₁₂</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.2);color:#fbbf24">α₁₃</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.6);color:#fff">α₁₄ 🔥</div>
+      </div>
+      <div class="attn-row">
+        <div class="attn-label">বন্ধ</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.15);color:#fbbf24">α₂₁</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.6);color:#fff">α₂₂ 🔥</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.15);color:#fbbf24">α₂₃</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.15);color:#fbbf24">α₂₄</div>
+      </div>
+      <div class="attn-row">
+        <div class="attn-label">করো</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.5);color:#fff">α₃₁ 🔥</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.2);color:#fbbf24">α₃₂</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.15);color:#fbbf24">α₃₃</div>
+        <div class="attn-cell" style="background:rgba(245,158,11,0.15);color:#fbbf24">α₃₄</div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:8px">
+      🔥 = সেই cell-এ high attention weight। যেমন "লাইট" generate করার সময় "lights" (α₁₄) সবচেয়ে বেশি important।
+    </p>
+
+    <div class="box box-yellow">
+      <strong>Key Insight:</strong> প্রতিটি row-এর সব α-এর sum = 1। এটা probability distribution। Model শিখে নেয় কোন source word কোন target word generate করার সময় কতটা important।
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">🔄</div>
+      Complete Attention Flow — প্রতিটি Decoder Timestep
+    </div>
+    <div class="timeline">
+      <div class="tl-item attn">
+        <div class="tl-label">Decoder t=1 → "লাইট" generate</div>
+        ১. s₀ (initial decoder state) ও সব h_j দিয়ে e_{1j} calculate → softmax → α_{1j}<br>
+        ২. C₁ = α₁₁h₁ + α₁₂h₂ + α₁₃h₃ + α₁₄h₄ (α₁₄ সবচেয়ে বড়, "lights"-কে focus করেছে)<br>
+        ৩. Input: [&lt;START&gt;, s₀, C₁] → LSTM → Softmax → "লাইট"
+      </div>
+      <div class="tl-item attn">
+        <div class="tl-label">Decoder t=2 → "বন্ধ" generate</div>
+        ১. s₁ ও সব h_j দিয়ে e_{2j} calculate → softmax → α_{2j}<br>
+        ২. C₂ = α₂₁h₁ + α₂₂h₂ + α₂₃h₃ + α₂₄h₄ (α₂₂ সবচেয়ে বড়, "off"-কে focus করেছে)<br>
+        ৩. Input: ["লাইট", s₁, C₂] → LSTM → Softmax → "বন্ধ"
+      </div>
+      <div class="tl-item attn">
+        <div class="tl-label">Decoder t=3 → "করো" generate</div>
+        ১. s₂ ও সব h_j দিয়ে α_{3j} calculate (α₃₁ বড়, "turn"-কে focus)<br>
+        ২. C₃ = weighted sum<br>
+        ৩. Input: ["বন্ধ", s₂, C₃] → LSTM → Softmax → "করো"
+      </div>
+      <div class="tl-item dec">
+        <div class="tl-label">Decoder t=4 → &lt;END&gt;</div>
+        → থামো!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- SECTION 4: SIMULATION -->
+<!-- ====================================================== -->
+<div class="section" id="simulation">
+  <div class="section-intro">
+    তোমার নোটের dataset ব্যবহার করে হাতে-কলমে calculation। সব numbers manually trace করা হবে।
+  </div>
+
+  <!-- DATASET -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(59,130,246,0.2)">📋</div>
+      Dataset
+    </div>
+    <table>
+      <tr><th>English (Input)</th><th>Bangla (Target Output)</th></tr>
+      <tr><td>Think about it</td><td>ওটা ভাবো</td></tr>
+      <tr><td>Come in</td><td>ভিতরে এসো</td></tr>
+    </table>
+    <p>Row 1: "Think about it" → "ওটা ভাবো" দিয়ে simulation করবো।</p>
+  </div>
+
+  <!-- STEP 1: VOCAB & OHE -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(16,185,129,0.2)">1️⃣</div>
+      Step 1: Vocabulary তৈরি ও One-Hot Encoding
+    </div>
+    
+    <div class="grid-2">
+      <div>
+        <p><strong>English Vocabulary (Index):</strong></p>
+        <table>
+          <tr><th>Word</th><th>Index</th><th>One-Hot (5-dim)</th></tr>
+          <tr><td>think</td><td>0</td><td style="color:var(--enc)">[1,0,0,0,0]</td></tr>
+          <tr><td>about</td><td>1</td><td style="color:var(--enc)">[0,1,0,0,0]</td></tr>
+          <tr><td>it</td><td>2</td><td style="color:var(--enc)">[0,0,1,0,0]</td></tr>
+          <tr><td>come</td><td>3</td><td style="color:var(--enc)">[0,0,0,1,0]</td></tr>
+          <tr><td>in</td><td>4</td><td style="color:var(--enc)">[0,0,0,0,1]</td></tr>
+        </table>
+      </div>
+      <div>
+        <p><strong>Bangla Vocabulary (Index):</strong></p>
+        <table>
+          <tr><th>Word</th><th>Index</th><th>One-Hot (7-dim)</th></tr>
+          <tr><td>&lt;start&gt;</td><td>0</td><td style="color:var(--dec)">[1,0,0,0,0,0,0]</td></tr>
+          <tr><td>ওটা</td><td>1</td><td style="color:var(--dec)">[0,1,0,0,0,0,0]</td></tr>
+          <tr><td>ভাবো</td><td>2</td><td style="color:var(--dec)">[0,0,1,0,0,0,0]</td></tr>
+          <tr><td>ভিতরে</td><td>3</td><td style="color:var(--dec)">[0,0,0,1,0,0,0]</td></tr>
+          <tr><td>এসো</td><td>4</td><td style="color:var(--dec)">[0,0,0,0,1,0,0]</td></tr>
+          <tr><td>মাও</td><td>5</td><td style="color:var(--dec)">[0,0,0,0,0,1,0]</td></tr>
+          <tr><td>&lt;end&gt;</td><td>6</td><td style="color:var(--dec)">[0,0,0,0,0,0,1]</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="box box-green">
+      <strong>Input Sequence (Row 1):</strong><br>
+      think → [1,0,0,0,0]<br>
+      about → [0,1,0,0,0]<br>
+      it &nbsp;&nbsp;&nbsp;→ [0,0,1,0,0]
+    </div>
+    <div class="box box-purple">
+      <strong>Target Sequence (Row 1):</strong><br>
+      Decoder Input:  [&lt;start&gt;, ওটা, ভাবো] = [[1,0,0,0,0,0,0], [0,1,...], [0,0,1,...]]<br>
+      Decoder Target: [ওটা, ভাবো, &lt;end&gt;]  = [[0,1,...], [0,0,1,...], [0,0,0,0,0,0,1]]
+    </div>
+  </div>
+
+  <!-- STEP 2: ENCODER SIMULATION -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(16,185,129,0.2)">2️⃣</div>
+      Step 2: Encoder Forward Pass (Simplified LSTM — dim=2)
+    </div>
+    <p>ধরো hidden dimension = 2 (real-world এ 256/512/1024 হয়)। Initial state: h₀ = [0, 0], c₀ = [0, 0]</p>
+    <p>LSTM-এর weights randomly initialized (এখানে approximate values ব্যবহার করছি simulation-এর জন্য)।</p>
+
+    <div class="sim-step">
+      <div class="sim-step-header">
+        <div class="step-num step-enc">t1</div>
+        <strong>t=1: Input = "think" = [1,0,0,0,0]</strong>
+      </div>
+      <div class="math">
+        Input: x₁ = [1, 0, 0, 0, 0]
+        Previous: h₀ = [0.0, 0.0],  c₀ = [0.0, 0.0]
+
+        LSTM gates (ধরি pretend weights দিয়ে):
+          forget gate f₁ = sigmoid(Wf·[h₀,x₁] + bf) ≈ [0.5, 0.5]
+          input  gate i₁ = sigmoid(Wi·[h₀,x₁] + bi) ≈ [0.7, 0.3]
+          candidate  g₁ = tanh  (Wg·[h₀,x₁] + bg) ≈ [0.6, -0.4]
+          output gate o₁ = sigmoid(Wo·[h₀,x₁] + bo) ≈ [0.6, 0.5]
+
+        c₁ = f₁ ⊙ c₀ + i₁ ⊙ g₁
+           = [0.5×0 + 0.7×0.6,  0.5×0 + 0.3×(-0.4)]
+           = [0.42, -0.12]
+
+        h₁ = o₁ ⊙ tanh(c₁)
+           = [0.6 × tanh(0.42),  0.5 × tanh(-0.12)]
+           ≈ [0.6 × 0.40,  0.5 × (-0.12)]
+           = [0.24, -0.06]  ← h₁ তৈরি হলো!
+      </div>
+    </div>
+
+    <div class="sim-step">
+      <div class="sim-step-header">
+        <div class="step-num step-enc">t2</div>
+        <strong>t=2: Input = "about" = [0,1,0,0,0]</strong>
+      </div>
+      <div class="math">
+        Input: x₂ = [0, 1, 0, 0, 0]
+        Previous: h₁ = [0.24, -0.06],  c₁ = [0.42, -0.12]
+
+        (Weights same, কিন্তু input আলাদা)
+          f₂ ≈ [0.55, 0.48],  i₂ ≈ [0.65, 0.35]
+          g₂ ≈ [0.4, 0.5],    o₂ ≈ [0.58, 0.52]
+
+        c₂ = f₂ ⊙ c₁ + i₂ ⊙ g₂
+           = [0.55×0.42 + 0.65×0.4,  0.48×(-0.12) + 0.35×0.5]
+           = [0.231 + 0.26,  -0.058 + 0.175]
+           = [0.491, 0.117]
+
+        h₂ = o₂ ⊙ tanh(c₂)
+           ≈ [0.58 × 0.454,  0.52 × 0.116]
+           = [0.263, 0.060]
+      </div>
+    </div>
+
+    <div class="sim-step">
+      <div class="sim-step-header">
+        <div class="step-num step-enc">t3</div>
+        <strong>t=3: Input = "it" = [0,0,1,0,0]</strong>
+      </div>
+      <div class="math">
+        Input: x₃ = [0, 0, 1, 0, 0]
+        Previous: h₂ = [0.263, 0.060],  c₂ = [0.491, 0.117]
+
+          f₃ ≈ [0.52, 0.51],  i₃ ≈ [0.60, 0.40]
+          g₃ ≈ [0.5, 0.3],    o₃ ≈ [0.55, 0.55]
+
+        c₃ = f₃ ⊙ c₂ + i₃ ⊙ g₃
+           = [0.52×0.491 + 0.60×0.5,  0.51×0.117 + 0.40×0.3]
+           = [0.255 + 0.300,  0.060 + 0.120]
+           = [0.555, 0.180]
+
+        h₃ = o₃ ⊙ tanh(c₃)
+           ≈ [0.55 × 0.505,  0.55 × 0.178]
+           = [0.278, 0.098]
+
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        🎯 CONTEXT VECTOR = (h₃, c₃)
+           h₃ = [0.278, 0.098]
+           c₃ = [0.555, 0.180]
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      </div>
+      <div class="box box-green">
+        Encoder শেষ! Context Vector তৈরি। এটাই Decoder-এ পাঠানো হবে।
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: DECODER SIMULATION -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(139,92,246,0.2)">3️⃣</div>
+      Step 3: Decoder Forward Pass
+    </div>
+    <p>Decoder LSTM শুরু হবে Encoder-এর final state (h₃, c₃) দিয়ে।</p>
+
+    <div class="sim-step">
+      <div class="sim-step-header">
+        <div class="step-num step-dec">d1</div>
+        <strong>Decoder t=1: Input = &lt;START&gt; = [1,0,0,0,0,0,0]</strong>
+      </div>
+      <div class="math">
+        Decoder LSTM Input: x_d1 = [1, 0, 0, 0, 0, 0, 0]
+        Initial state:  h_d0 = h₃ = [0.278, 0.098]
+                        c_d0 = c₃ = [0.555, 0.180]
+
+        Decoder LSTM gates:
+          f_d1 ≈ [0.60, 0.55],  i_d1 ≈ [0.70, 0.45]
+          g_d1 ≈ [0.5, 0.4],    o_d1 ≈ [0.65, 0.58]
+
+        c_d1 = f_d1 ⊙ c_d0 + i_d1 ⊙ g_d1
+             = [0.60×0.555 + 0.70×0.5,  0.55×0.180 + 0.45×0.4]
+             = [0.333 + 0.350,  0.099 + 0.180]
+             = [0.683, 0.279]
+
+        h_d1 = o_d1 ⊙ tanh(c_d1)
+             ≈ [0.65 × 0.594,  0.58 × 0.272]
+             = [0.386, 0.158]
+
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Softmax Layer:
+        output = W_out × h_d1 + b_out  (7-dim output, Bangla vocab)
+        raw ≈  [0.8, 1.5, 0.3, 0.2, 0.1, 0.05, 0.05]  (assumed)
+        softmax = exp(each) / sum(exp(all))
+                ≈ [0.13, 0.26, 0.08, 0.07, 0.06, 0.06, 0.06]
+                                ↑
+                         highest = index 1 = "ওটা" ✅
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Prediction t=1: "ওটা"
+      </div>
+    </div>
+
+    <div class="sim-step">
+      <div class="sim-step-header">
+        <div class="step-num step-dec">d2</div>
+        <strong>Decoder t=2: Input = "ওটা" = [0,1,0,0,0,0,0]</strong>
+      </div>
+      <div class="math">
+        Input: x_d2 = [0, 1, 0, 0, 0, 0, 0]
+        Previous: h_d1 = [0.386, 0.158],  c_d1 = [0.683, 0.279]
+
+        (LSTM process similarly...)
+        c_d2 ≈ [0.712, 0.320]
+        h_d2 ≈ [0.420, 0.195]
+
+        Softmax output ≈ [0.04, 0.08, 0.45, 0.12, 0.11, 0.10, 0.10]
+                                              ↑
+                                    highest = index 2 = "ভাবো" ✅
+
+        Prediction t=2: "ভাবো"
+      </div>
+    </div>
+
+    <div class="sim-step">
+      <div class="sim-step-header">
+        <div class="step-num step-dec">d3</div>
+        <strong>Decoder t=3: Input = "ভাবো" → &lt;END&gt; predict</strong>
+      </div>
+      <div class="math">
+        Input: x_d3 = [0, 0, 1, 0, 0, 0, 0]
+        (process similarly...)
+        
+        Softmax output ≈ [0.03, 0.04, 0.05, 0.06, 0.04, 0.05, 0.73]
+                                                               ↑
+                                                    highest = index 6 = &lt;END&gt; ✅
+
+        Prediction t=3: &lt;END&gt; → থামো!
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        🎯 Final Translation: "ওটা ভাবো"
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: LOSS CALCULATION -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(239,68,68,0.2)">4️⃣</div>
+      Step 4: Loss Calculation (Categorical Cross Entropy)
+    </div>
+    <p>তোমার নোটের উদাহরণ অনুযায়ী loss calculation:</p>
+
+    <div class="math">
+      Loss Formula: L = -Σ (y_true_i × log(y_pred_i))
+
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      Timestep t=1:
+        y_true = [0, 1, 0, 0, 0, 0, 0]  (correct = "ওটা", index 1)
+        y_pred = [0.13, 0.26, 0.08, 0.07, 0.06, 0.06, 0.06]  (softmax)
+        
+        L₁ = -(0×log(0.13) + 1×log(0.26) + 0×... )
+           = -1 × log(0.26)
+           = -1 × (-1.347)
+           = 1.347
+
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      Timestep t=2:
+        y_true = [0, 0, 1, 0, 0, 0, 0]  (correct = "ভাবো", index 2)
+        y_pred = [0.04, 0.08, 0.45, 0.12, 0.11, 0.10, 0.10]
+        
+        L₂ = -1 × log(0.45)
+           = -1 × (-0.799)
+           = 0.799
+
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      Timestep t=3:
+        y_true = [0, 0, 0, 0, 0, 0, 1]  (correct = &lt;END&gt;, index 6)
+        y_pred = [0.03, 0.04, 0.05, 0.06, 0.04, 0.05, 0.73]
+        
+        L₃ = -1 × log(0.73)
+           = -1 × (-0.315)
+           = 0.315
+
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      Total Loss = L₁ + L₂ + L₃ = 1.347 + 0.799 + 0.315 = 2.461
+
+      (Training continue হলে loss কমতে থাকে)
+    </div>
+
+    <div class="box box-yellow">
+      <strong>নোটের example-এর সাথে মিল:</strong><br>
+      তোমার নোটে দেখানো হয়েছিল: L_{t=1} = -1×log(0.1) = 1, L_{t=2} = 1, L_{t=3} = -1×log(0.4) = 0.39। এটাই same calculation!
+    </div>
+  </div>
+
+  <!-- STEP 5: ATTENTION SIMULATION -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon" style="background:rgba(245,158,11,0.2)">5️⃣</div>
+      Step 5: Attention Calculation Simulation (Bonus)
+    </div>
+    <p>"turn off the lights" → হিন্দি example থেকে attention weights simulate করি। Encoder hidden states ধরো:</p>
+
+    <div class="math">
+      Encoder hidden states (dim=2):
+        h₁ (turn)  = [0.8,  0.1]
+        h₂ (off)   = [0.2,  0.9]
+        h₃ (the)   = [0.1,  0.2]
+        h₄ (lights)= [0.9,  0.7]
+
+      Decoder at t=1 (generating "লাইট"):
+        s₀ = [0.1, 0.1]  (initial decoder hidden state)
+
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      Score calculation: e_{1j} = ANN(h_j, s₀)
+      (সরলতার জন্য ধরি: e = h_j · s₀ = dot product)
+
+        e₁₁ = h₁ · s₀ = 0.8×0.1 + 0.1×0.1 = 0.09
+        e₁₂ = h₂ · s₀ = 0.2×0.1 + 0.9×0.1 = 0.11
+        e₁₃ = h₃ · s₀ = 0.1×0.1 + 0.2×0.1 = 0.03
+        e₁₄ = h₄ · s₀ = 0.9×0.1 + 0.7×0.1 = 0.16
+
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      Softmax:
+        exp(0.09)=1.094, exp(0.11)=1.116, exp(0.03)=1.030, exp(0.16)=1.174
+        sum = 4.414
+
+        α₁₁ = 1.094/4.414 = 0.248
+        α₁₂ = 1.116/4.414 = 0.253
+        α₁₃ = 1.030/4.414 = 0.233
+        α₁₄ = 1.174/4.414 = 0.266  ← সবচেয়ে বড়! "lights" focus করছে ✅
+
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      Context Vector C₁:
+        C₁ = 0.248×[0.8,0.1] + 0.253×[0.2,0.9] + 0.233×[0.1,0.2] + 0.266×[0.9,0.7]
+           = [0.198, 0.025] + [0.051, 0.228] + [0.023, 0.047] + [0.239, 0.186]
+           = [0.511, 0.486]
+
+      এই C₁ decoder-এর t=1 input-এ যোগ করা হবে।
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- SECTION 5: QUESTIONS -->
+<!-- ====================================================== -->
+<div class="section" id="questions">
+  <div class="section-intro">
+    Professor likely questions — organized by topic and difficulty.
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--enc)">🟢 Conceptual / Foundational Questions</div>
+
+    <div class="q-item">
+      <div class="q-num">Q-01</div>
+      <div class="q-text">Why can't a standard RNN or LSTM directly perform machine translation? What is the fundamental limitation?</div>
+      <div class="q-hint">Hint: Variable-length input and output sequences. Fixed hidden state size cannot capture all information.</div>
+      <span class="q-tag">conceptual</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-02</div>
+      <div class="q-text">What is the role of the Context Vector in the Encoder-Decoder architecture? What information does it carry?</div>
+      <div class="q-hint">Hint: (h_T, c_T) — compressed representation of the entire input sequence.</div>
+      <span class="q-tag">conceptual</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-03</div>
+      <div class="q-text">Why are the outputs of the Encoder LSTM ignored during encoding? What is the significance of only using the final hidden state?</div>
+      <div class="q-hint">Hint: Each intermediate hidden state is a partial representation. Only the final state has seen all input tokens.</div>
+      <span class="q-tag">conceptual</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-04</div>
+      <div class="q-text">Explain the role of &lt;START&gt; and &lt;END&gt; tokens in the Decoder. Why are they necessary?</div>
+      <div class="q-hint">Hint: &lt;START&gt; signals beginning of generation. &lt;END&gt; tells the model when to stop.</div>
+      <span class="q-tag">conceptual</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-05</div>
+      <div class="q-text">What is Teacher Forcing? What are its advantages and disadvantages?</div>
+      <div class="q-hint">Hint: Feeding true labels during training vs predicted output. Pros: faster convergence. Cons: exposure bias at inference.</div>
+      <span class="q-tag">conceptual</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--attn)">🟡 Architecture-specific Questions</div>
+
+    <div class="q-item">
+      <div class="q-num">Q-06</div>
+      <div class="q-text">What is the difference between the input to the Decoder at each timestep in a Vanilla Encoder-Decoder vs an Attention-based Encoder-Decoder?</div>
+      <div class="q-hint">Hint: Vanilla = [y_{i-1}, s_{i-1}]. Attention = [y_{i-1}, s_{i-1}, C_i]. C_i is the dynamic context vector.</div>
+      <span class="q-tag medium">architecture</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-07</div>
+      <div class="q-text">Explain the "Context Vector Bottleneck" problem. How does Attention mechanism solve it?</div>
+      <div class="q-hint">Hint: Fixed-size vector must compress entire sentence. Attention uses ALL encoder hidden states + dynamic weighting per decoder step.</div>
+      <span class="q-tag medium">attention</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-08</div>
+      <div class="q-text">What is α_{ij} in the Attention mechanism? How is it computed and what does it represent?</div>
+      <div class="q-hint">Hint: Alignment/similarity score between decoder timestep i and encoder timestep j. Computed via ANN(h_j, s_{i-1}) → softmax.</div>
+      <span class="q-tag medium">attention</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-09</div>
+      <div class="q-text">Why does the attention weight matrix (α) sum to 1 across each row? What mathematical property ensures this?</div>
+      <div class="q-hint">Hint: Softmax function applied to scores. Output sums to 1, making it a valid probability distribution over source positions.</div>
+      <span class="q-tag medium">attention</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-10</div>
+      <div class="q-text">How is the dynamic Context Vector C_i computed in the Attention mechanism? Write the formula.</div>
+      <div class="q-hint">Hint: C_i = Σ_j (α_{ij} × h_j) — weighted sum of ALL encoder hidden states.</div>
+      <span class="q-tag medium">attention</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--red)">🔴 Advanced / Tricky Questions</div>
+
+    <div class="q-item">
+      <div class="q-num">Q-11</div>
+      <div class="q-text">In Attention, we say α_{ij} = f(h_j, s_{i-1}). Why is s_{i-1} used instead of s_i? Why the "previous" decoder hidden state?</div>
+      <div class="q-hint">Hint: At decoding step i, s_i hasn't been computed yet — it depends on C_i which we're trying to calculate. Causality constraint.</div>
+      <span class="q-tag hard">tricky</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-12</div>
+      <div class="q-text">Why is the Alignment score function f in Attention implemented as a small ANN (neural network) rather than a simple dot product?</div>
+      <div class="q-hint">Hint: ANN = Universal Function Approximator. Can learn complex non-linear relationships between h_j and s_{i-1}. Dot product is too simplistic (Bahdanau vs Luong attention).</div>
+      <span class="q-tag hard">advanced</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-13</div>
+      <div class="q-text">What are the three improvements to the vanilla Seq2Seq model (as per your notes)? Explain the intuition behind "Reversing the Input."</div>
+      <div class="q-hint">Hint: 1) Embeddings, 2) Deep LSTMs, 3) Reversing input. Reversing: first source word becomes closest to first target word → shorter gradient path.</div>
+      <span class="q-tag medium">improvements</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-14</div>
+      <div class="q-text">During Attention training, how does the ANN that computes alignment scores get trained? Is it trained separately?</div>
+      <div class="q-hint">Hint: No — it is trained jointly (end-to-end) with the entire Encoder-Decoder network via backpropagation.</div>
+      <span class="q-tag hard">training</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-15</div>
+      <div class="q-text">Why is loss calculated using Categorical Cross Entropy and not Mean Squared Error for machine translation?</div>
+      <div class="q-hint">Hint: Translation is multiclass classification (predict next word from vocabulary). CCE is designed for probability distributions; MSE doesn't work well with softmax outputs.</div>
+      <span class="q-tag hard">loss</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-16</div>
+      <div class="q-text">In the Attention mechanism, what is a "Time Distributed Dense Layer" and why is it needed?</div>
+      <div class="q-hint">Hint: Applies the same Dense/Linear layer to each timestep independently. Used to compute alignment scores e_{ij} = W·h_j across all encoder timesteps in parallel.</div>
+      <span class="q-tag hard">architecture</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-17</div>
+      <div class="q-text">Suppose you have a 50-word input sentence. What is the size of the attention weight matrix (α)? How many context vectors are computed if the output is 30 words?</div>
+      <div class="q-hint">Hint: Matrix size = 30 (decoder steps) × 50 (encoder steps). Context vectors = 30 (one per decoder timestep).</div>
+      <span class="q-tag medium">calculation</span>
+    </div>
+
+    <div class="q-item">
+      <div class="q-num">Q-18</div>
+      <div class="q-text">What is Deep LSTM in the context of Seq2Seq? What does "Layered Representation" mean (word → sentence → paragraph)?</div>
+      <div class="q-hint">Hint: Multiple LSTM layers stacked. Lower layers capture lexical/word-level patterns; higher layers capture semantic/discourse-level patterns.</div>
+      <span class="q-tag medium">architecture</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--blue)">🔵 One-line Answer Questions (Viva style)</div>
+    <table>
+      <tr><th>#</th><th>Question</th><th>Quick Answer</th></tr>
+      <tr><td>V1</td><td>What does Seq2Seq stand for?</td><td>Sequence to Sequence</td></tr>
+      <tr><td>V2</td><td>Which loss is used in NMT?</td><td>Categorical Cross Entropy</td></tr>
+      <tr><td>V3</td><td>What is the last activation in decoder output?</td><td>Softmax</td></tr>
+      <tr><td>V4</td><td>What tokens wrap the target sequence?</td><td>&lt;START&gt; and &lt;END&gt;</td></tr>
+      <tr><td>V5</td><td>What does α_{ij} sum to (over j)?</td><td>1 (it's a probability)</td></tr>
+      <tr><td>V6</td><td>Who introduced Attention? (2014)</td><td>Bahdanau et al., 2014</td></tr>
+      <tr><td>V7</td><td>What is C_i mathematically?</td><td>Σ_j α_{ij} × h_j</td></tr>
+      <tr><td>V8</td><td>What does "unrolling" an RNN mean?</td><td>Showing each timestep as separate copy</td></tr>
+      <tr><td>V9</td><td>What optimizer is commonly used?</td><td>Adam</td></tr>
+      <tr><td>V10</td><td>What is a Context Vector?</td><td>Compressed fixed-size representation of input sequence</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>

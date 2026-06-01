@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LSTM, GRU & BiRNN — Final Exam Study Guide</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Georgia',serif;background:#fafaf8;color:#1a1a1a;line-height:1.75;font-size:14px}
+.page{max-width:920px;margin:0 auto;padding:2rem 1.4rem 5rem}
+
+/* hero */
+.hero{background:#0f1724;color:#e0e8f8;padding:2rem;border-radius:14px;margin-bottom:2rem}
+.hero h1{font-size:1.6rem;color:#7eb8ff;font-family:sans-serif;letter-spacing:.5px}
+.hero p{color:#8899bb;font-size:.82rem;font-family:sans-serif;margin-top:.4rem}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1rem}
+.badge{background:#1a2540;border:1px solid #3a4a80;color:#8ab0ff;font-size:.7rem;padding:3px 10px;border-radius:20px;font-family:sans-serif}
+
+/* toc */
+.toc{background:#fff;border:1px solid #ddd;border-radius:10px;padding:1.2rem 1.5rem;margin-bottom:2rem}
+.toc h3{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:.8rem;font-family:sans-serif}
+.toc ol{padding-left:1.2rem}
+.toc li{font-size:.88rem;margin-bottom:.3rem;font-family:sans-serif}
+.toc a{color:#3355cc;text-decoration:none}
+.toc a:hover{text-decoration:underline}
+
+/* section headers */
+.sec-hdr{display:flex;align-items:center;gap:12px;margin:2.5rem 0 1.2rem;padding-bottom:.6rem;border-bottom:2px solid #ddd}
+.sec-num{background:#1a2a6c;color:#fff;font-size:.72rem;font-weight:700;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:sans-serif}
+.sec-hdr h2{font-size:1.15rem;font-weight:700;color:#0f1724;font-family:sans-serif}
+.subsec{font-size:.9rem;font-weight:700;color:#1a2a6c;margin:1.4rem 0 .6rem;padding-left:.8rem;border-left:3px solid #3355cc;font-family:sans-serif}
+
+/* bangla theory boxes */
+.bn-box{background:#fff;border:1px solid #dde;border-radius:10px;padding:1.1rem 1.4rem;margin-bottom:1rem}
+.bn-box h4{font-size:.82rem;font-weight:700;color:#1a2a6c;margin-bottom:.6rem;font-family:sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.bn-box p{font-size:.93rem;line-height:1.9;margin-bottom:.4rem}
+.bn-box ul{padding-left:1.2rem}
+.bn-box li{font-size:.93rem;line-height:1.9;margin-bottom:.2rem}
+
+/* math blocks */
+.math{background:#0a0f1e;color:#d0e8d0;font-family:'Courier New',monospace;font-size:.8rem;padding:1rem 1.2rem;border-radius:8px;overflow-x:auto;margin:.7rem 0;line-height:2}
+.math .cm{color:#4a8a4a}
+.math .hl{color:#ffd060;font-weight:bold}
+.math .res{color:#80d4ff;font-weight:bold}
+.math .rd{color:#ff8888}
+.math .gn{color:#88dd88}
+.math .wh{color:#ffffff;font-weight:bold}
+.math .pk{color:#ffaadd}
+.math .am{color:#ffcc66}
+
+/* step cards */
+.step{background:#fff;border:1px solid #dde;border-radius:10px;padding:1rem 1.2rem;margin:.7rem 0;display:flex;gap:12px}
+.step-n{background:#e8eeff;color:#1a2a6c;font-size:.72rem;font-weight:700;min-width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:sans-serif}
+.step-c strong{font-size:.88rem;color:#0f1724;display:block;margin-bottom:.3rem;font-family:sans-serif}
+.step-c p{font-size:.85rem;line-height:1.65;font-family:sans-serif}
+
+/* info / result / warn boxes */
+.info{background:#e8f0ff;border-left:3px solid #2244cc;padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:.7rem 0;font-size:.85rem;font-family:sans-serif}
+.warn{background:#fff8e0;border-left:3px solid #cc8800;padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:.7rem 0;font-size:.85rem;font-family:sans-serif}
+.ok{background:#e8f8ee;border-left:3px solid #1a8a44;padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:.7rem 0;font-size:.85rem;font-family:sans-serif}
+.res-box{background:#0a1a0a;border:1px solid #2a6a2a;border-radius:8px;padding:.8rem 1rem;margin:.6rem 0}
+.res-box .lbl{font-size:.7rem;color:#66bb66;font-family:sans-serif;text-transform:uppercase;letter-spacing:1px;margin-bottom:.3rem}
+
+/* tables */
+.tw{overflow-x:auto;margin:.7rem 0}
+table{border-collapse:collapse;width:100%;font-size:.8rem;font-family:sans-serif}
+th{background:#1a2a6c;color:#fff;padding:6px 10px;text-align:center;border:1px solid #2a3a7c}
+td{border:1px solid #dde;padding:5px 10px;text-align:center;color:#333}
+tr:nth-child(even) td{background:#f5f5f8}
+.hl-row td{background:#e8eeff!important;font-weight:700;color:#1a2a6c}
+.ok-row td{background:#e8f8ee!important}
+.warn-row td{background:#fff3e0!important}
+
+/* Q&A cards */
+.qa{background:#fff;border:1px solid #dde;border-radius:10px;margin-bottom:1.2rem;overflow:hidden}
+.qa-q{background:#1a2a6c;color:#d0d8ff;padding:.8rem 1.2rem;font-size:.88rem;font-weight:700;font-family:sans-serif}
+.qa-a{padding:1rem 1.2rem;font-size:.86rem;line-height:1.75;font-family:sans-serif}
+.qa-a ul{padding-left:1.2rem;margin-top:.4rem}
+.qa-a li{margin-bottom:.3rem}
+
+code{background:#eeeeff;color:#2244aa;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:.85em}
+.sep{height:1px;background:linear-gradient(to right,transparent,#ccc,transparent);margin:2rem 0}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;border-radius:4px;margin-left:6px;font-family:sans-serif}
+.tag-bn{background:#dde8ff;color:#1a2a6c}
+.tag-en{background:#ddffe8;color:#1a5a2a}
+.tag-math{background:#fff0dd;color:#664400}
+
+/* gate color chips */
+.chip-f{display:inline-block;background:#ffdddd;color:#882222;border-radius:4px;padding:1px 8px;font-size:.78rem;font-family:sans-serif;font-weight:700}
+.chip-i{display:inline-block;background:#ddeeff;color:#224488;border-radius:4px;padding:1px 8px;font-size:.78rem;font-family:sans-serif;font-weight:700}
+.chip-o{display:inline-block;background:#ddffdd;color:#226622;border-radius:4px;padding:1px 8px;font-size:.78rem;font-family:sans-serif;font-weight:700}
+.chip-c{display:inline-block;background:#fff0cc;color:#664400;border-radius:4px;padding:1px 8px;font-size:.78rem;font-family:sans-serif;font-weight:700}
+.chip-z{display:inline-block;background:#e8ddff;color:#442288;border-radius:4px;padding:1px 8px;font-size:.78rem;font-family:sans-serif;font-weight:700}
+.chip-r{display:inline-block;background:#ffeedd;color:#664422;border-radius:4px;padding:1px 8px;font-size:.78rem;font-family:sans-serif;font-weight:700}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:.8rem 0}
+.ccard{background:#fff;border:1px solid #dde;border-radius:8px;padding:.8rem 1rem}
+.ccard h4{font-size:.82rem;font-weight:700;font-family:sans-serif;margin-bottom:.5rem;padding-bottom:.3rem;border-bottom:1px solid #eee}
+.ccard li{font-size:.82rem;font-family:sans-serif;line-height:1.7;margin-bottom:.2rem}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>LSTM, GRU &amp; BiRNN — Final Exam Guide</h1>
+  <p style="font-family:sans-serif">RNN → Vanishing Gradient → LSTM (4 gates) → GRU (2 gates) → BiRNN | Full math + examples + professor Q&amp;A</p>
+  <div class="badge-row">
+    <span class="badge">RNN &amp; BPTT</span><span class="badge">Vanishing Gradient</span><span class="badge">LSTM — 4 Equations</span>
+    <span class="badge">GRU — 4 Equations</span><span class="badge">BiRNN</span><span class="badge">Numerical Examples</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#p1">Bangla Theoretical Summary — RNN, BPTT, Vanishing Gradient</a></li>
+    <li><a href="#p2">LSTM — Full Algorithm + End-to-End Math Example</a></li>
+    <li><a href="#p3">GRU — Full Algorithm + End-to-End Math Example</a></li>
+    <li><a href="#p4">BiRNN — Why &amp; How + Mathematical Flow with Example</a></li>
+    <li><a href="#p5">Professor's Explicit Questions &amp; Model Answers</a></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- PART 1: BANGLA THEORY              -->
+<!-- ═══════════════════════════════════ -->
+<div id="p1">
+<div class="sec-hdr"><div class="sec-num">১</div><h2>বাংলায় Theoretical Summary <span class="tag tag-bn">বাংলা</span></h2></div>
+
+<div class="bn-box">
+  <h4>🔷 RNN কী? কেন দরকার?</h4>
+  <p>Standard Neural Network-এ প্রতিটি input independent। কিন্তু sequence data-তে (text, speech, time series) আগের information পরের decision-এ কাজে লাগে। RNN এই কাজটা করে — প্রতিটি time step-এ আগের hidden state hₜ₋₁ নিয়ে নতুন hₜ তৈরি করে।</p>
+  <p>সূত্র: <strong>hₜ = tanh(U·xₜ + W·hₜ₋₁)</strong> এবং output: <strong>ŷₜ = softmax(V·hₜ)</strong></p>
+  <ul>
+    <li>U = input weight matrix, W = recurrent weight matrix, V = output weight matrix</li>
+    <li>প্রতিটি time step-এ same weights (U, W, V) ব্যবহার করা হয়</li>
+  </ul>
+</div>
+
+<div class="bn-box">
+  <h4>🔷 BPTT (Backpropagation Through Time)</h4>
+  <p>RNN-এ loss হিসাব করতে time-এর উপর দিয়ে backprop করতে হয়। Total gradient:</p>
+  <p><strong>∂E/∂W = Σₜ ∂Eₜ/∂W</strong> — প্রতিটি time step-এর gradient যোগ হয়।</p>
+  <p>t=3 এ loss-এর জন্য:</p>
+  <p><strong>∂E₃/∂W = Σₖ₌₀³ (∂E₃/∂ŷ₃)(∂ŷ₃/∂s₃)(∂s₃/∂sₖ)(∂sₖ/∂W)</strong></p>
+  <p>মানে s₃ → s₂ → s₁ → s₀ পর্যন্ত chain rule apply করতে হয়। এই কারণে h গুলো memory-তে save করতে হয় — memory constraint আসে।</p>
+</div>
+
+<div class="bn-box">
+  <h4>🔷 Vanishing Gradient Problem</h4>
+  <p>BPTT-তে ∂sⱼ/∂sⱼ₋₁ একটি Jacobian matrix — এর 2-norm এর upper bound হলো 1। tanh function সব value -1 থেকে +1 এ map করে, derivative সর্বোচ্চ 1।</p>
+  <p>Chain rule-এ অনেকগুলো এই small value গুণ হলে: <strong>gradient → 0 (vanishing)</strong> অথবা বড় value থাকলে <strong>gradient → ∞ (exploding)</strong>।</p>
+  <p>ফলে, দূরের time step-এর information শেখা যায় না। "I grew up in India… I speak fluent Hindi" — এখানে "India" আর "Hindi" এর মাঝে অনেক time step থাকলে RNN ভুলে যায়।</p>
+</div>
+
+<div class="bn-box">
+  <h4>🔷 LSTM কীভাবে এই সমস্যা সমাধান করে?</h4>
+  <p>LSTM দুটো জিনিস রাখে:</p>
+  <ul>
+    <li><strong>Cell State (Cₜ)</strong> → Long-term memory — এটি একটি "highway" যেখানে information প্রায় unchanged থেকে flow করে। Gradient এখানে multiply হয় না, বরং add হয় → vanishing gradient নেই!</li>
+    <li><strong>Hidden State (hₜ)</strong> → Short-term memory — বর্তমান output।</li>
+  </ul>
+  <p>৩টি Gate (percentage calculator) → sigmoid ব্যবহার করে (0 to 1):</p>
+  <ul>
+    <li><span class="chip-f">Forget Gate fₜ</span> → আগের long-term memory কতটুকু রাখবো?</li>
+    <li><span class="chip-i">Input Gate iₜ</span> + <span class="chip-c">C̃ₜ</span> → নতুন কী information যোগ করবো?</li>
+    <li><span class="chip-o">Output Gate oₜ</span> → cell state-এর কতটুকু output হবে?</li>
+  </ul>
+  <p><strong>Constant Error Carousel:</strong> Cell state-এ weight fixed at 1 — gradient backprop করার সময় এই highway দিয়ে constant magnitude-এ যায়, vanish হয় না।</p>
+</div>
+
+<div class="bn-box">
+  <h4>🔷 GRU — LSTM-এর simpler version</h4>
+  <p>GRU-তে শুধু একটি state (hidden state hₜ) এবং মাত্র ২টি gate:</p>
+  <ul>
+    <li><span class="chip-z">Update Gate zₜ</span> → LSTM-এর forget + input gate combined। কতটুকু past info রাখবো?</li>
+    <li><span class="chip-r">Reset Gate rₜ</span> → কতটুকু past info ভুলে যাবো?</li>
+  </ul>
+  <p>GRU fewer parameters → faster training। LSTM more expressive → complex tasks-এ better।</p>
+</div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- PART 2: LSTM MATH                  -->
+<!-- ═══════════════════════════════════ -->
+<div id="p2">
+<div class="sec-hdr"><div class="sec-num">২</div><h2>LSTM — Full Algorithm &amp; End-to-End Example <span class="tag tag-math">Math</span></h2></div>
+
+<div class="info">
+  <strong>Setup:</strong> Input dimension = 2, Hidden dimension = 2 (scalar for simplicity)<br>
+  <strong>Sequence:</strong> 2 time steps. x₁ = [1, 0], x₂ = [0, 1]<br>
+  <strong>Initial state:</strong> h₀ = [0, 0], C₀ = [0, 0]<br>
+  <strong>All weights simplified to scalars for clarity. sigmoid(x) = 1/(1+e⁻ˣ), tanh values given.</strong>
+</div>
+
+<div class="subsec">The 4 LSTM Equations (Memorize These!)</div>
+<div class="math">
+<span class="cm">━━━━━━━ LSTM CORE EQUATIONS ━━━━━━━</span><br>
+<span class="chip-f" style="background:transparent;color:#ff8888">FORGET GATE:</span>  <span class="hl">fₜ = σ(Wf·[hₜ₋₁, xₜ] + bf)</span>   <span class="cm">← how much of OLD memory to keep?  (0=forget all, 1=keep all)</span><br>
+<span class="chip-i" style="background:transparent;color:#88aaff">INPUT GATE: </span>  <span class="hl">iₜ = σ(Wi·[hₜ₋₁, xₜ] + bi)</span>   <span class="cm">← how much of NEW info to write?</span><br>
+<span class="chip-c" style="background:transparent;color:#ffcc66">CANDIDATE:  </span>  <span class="hl">C̃ₜ = tanh(Wc·[hₜ₋₁, xₜ] + bc)</span> <span class="cm">← what is the new candidate info?  (range -1 to +1)</span><br>
+<span class="chip-o" style="background:transparent;color:#88dd88">OUTPUT GATE:</span>  <span class="hl">oₜ = σ(Wo·[hₜ₋₁, xₜ] + bo)</span>   <span class="cm">← how much of cell state to expose?</span><br>
+<br>
+<span class="cm">━━━ STATE UPDATES ━━━</span><br>
+<span class="wh">Cₜ = fₜ ⊙ Cₜ₋₁ + iₜ ⊙ C̃ₜ</span>     <span class="cm">← new long-term memory  (⊙ = element-wise multiply)</span><br>
+<span class="wh">hₜ = oₜ ⊙ tanh(Cₜ)</span>            <span class="cm">← new short-term memory / output</span>
+</div>
+
+<div class="subsec">Step 1: Forward Pass at t=1 (x₁ = [1, 0])</div>
+<div class="info">
+  <strong>Assumed weights (simplified for calculation):</strong><br>
+  Wf = Wi = Wc = Wo = 0.5 (for input connection)<br>
+  Uf = Ui = Uc = Uo = 0.3 (for hidden state connection)<br>
+  All biases = 0. &nbsp;h₀ = 0, C₀ = 0, x₁ = 1 (scalar, using first element for clarity)
+</div>
+
+<div class="math">
+<span class="cm">━━━━━━━ TIME STEP t=1, Input x₁=1, h₀=0, C₀=0 ━━━━━━━</span><br>
+<br>
+<span class="cm"># Raw linear combination for all gates: W·xₜ + U·hₜ₋₁ + b</span><br>
+linear = Wf·x₁ + Uf·h₀ + bf = 0.5×1 + 0.3×0 + 0 = <span class="hl">0.50</span><br>
+<br>
+<span class="rd">━━ FORGET GATE ━━</span><br>
+f₁ = σ(0.50) = 1/(1 + e⁻⁰·⁵) = 1/(1 + 0.6065) = <span class="rd">0.622</span><br>
+<span class="cm">Meaning: keep 62.2% of old memory (but C₀=0 so no effect here)</span><br>
+<br>
+<span class="hl">━━ INPUT GATE ━━</span><br>
+i₁ = σ(0.50) = <span class="hl">0.622</span>  <span class="cm">← how much new info to write</span><br>
+<br>
+<span class="am">━━ CANDIDATE ━━</span><br>
+C̃₁ = tanh(0.50) = <span class="am">0.462</span>  <span class="cm">← what new info to potentially store</span><br>
+<br>
+<span class="gn">━━ OUTPUT GATE ━━</span><br>
+o₁ = σ(0.50) = <span class="gn">0.622</span>  <span class="cm">← how much cell state to expose</span><br>
+<br>
+<span class="cm">━━━ STATE UPDATES ━━━</span><br>
+C₁ = f₁ × C₀  +  i₁ × C̃₁<br>
+   = 0.622 × 0  +  0.622 × 0.462<br>
+   = 0  +  0.287<br>
+   <span class="wh">= 0.287</span>  <span class="cm">← new long-term memory</span><br>
+<br>
+h₁ = o₁ × tanh(C₁)<br>
+   = 0.622 × tanh(0.287)<br>
+   = 0.622 × 0.281<br>
+   <span class="res">= 0.175</span>  <span class="cm">← new hidden state / output</span>
+</div>
+
+<div class="subsec">Step 2: Forward Pass at t=2 (x₂ = 0, h₁ = 0.175, C₁ = 0.287)</div>
+<div class="math">
+<span class="cm">━━━━━━━ TIME STEP t=2, Input x₂=0, h₁=0.175, C₁=0.287 ━━━━━━━</span><br>
+<br>
+linear = W·x₂ + U·h₁ + b = 0.5×0 + 0.3×0.175 + 0 = 0 + 0.053 = <span class="hl">0.053</span><br>
+<br>
+<span class="rd">━━ FORGET GATE ━━</span><br>
+f₂ = σ(0.053) = 1/(1+e⁻⁰·⁰⁵³) = 1/(1+0.948) = <span class="rd">0.513</span><br>
+<span class="cm">Meaning: keep only 51.3% of C₁ — model is partially forgetting</span><br>
+<br>
+<span class="hl">━━ INPUT GATE ━━</span><br>
+i₂ = σ(0.053) = <span class="hl">0.513</span><br>
+<br>
+<span class="am">━━ CANDIDATE ━━</span><br>
+C̃₂ = tanh(0.053) = <span class="am">0.053</span>  <span class="cm">(tanh≈x for small x)</span><br>
+<br>
+<span class="gn">━━ OUTPUT GATE ━━</span><br>
+o₂ = σ(0.053) = <span class="gn">0.513</span><br>
+<br>
+<span class="cm">━━━ STATE UPDATES ━━━</span><br>
+C₂ = f₂ × C₁  +  i₂ × C̃₂<br>
+   = 0.513 × 0.287  +  0.513 × 0.053<br>
+   = 0.147  +  0.027<br>
+   <span class="wh">= 0.174</span>  <span class="cm">← cell state partially carried forward</span><br>
+<br>
+h₂ = o₂ × tanh(C₂)<br>
+   = 0.513 × tanh(0.174)<br>
+   = 0.513 × 0.173<br>
+   <span class="res">= 0.089</span>  <span class="cm">← final hidden state output</span>
+</div>
+
+<div class="subsec">Summary Table — LSTM State Evolution</div>
+<div class="tw">
+<table>
+  <tr><th>Time</th><th>xₜ</th><th>fₜ (forget)</th><th>iₜ (input)</th><th>C̃ₜ (candidate)</th><th>oₜ (output)</th><th>Cₜ (long-term)</th><th>hₜ (short-term)</th></tr>
+  <tr><td>t=0</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0.000</td><td>0.000</td></tr>
+  <tr class="ok-row"><td>t=1</td><td>1</td><td>0.622</td><td>0.622</td><td>0.462</td><td>0.622</td><td><strong>0.287</strong></td><td><strong>0.175</strong></td></tr>
+  <tr class="hl-row"><td>t=2</td><td>0</td><td>0.513</td><td>0.513</td><td>0.053</td><td>0.513</td><td><strong>0.174</strong></td><td><strong>0.089</strong></td></tr>
+</table>
+</div>
+
+<div class="ok">
+  <strong>Key Observation:</strong> At t=2 the input is 0, but hₜ and Cₜ are non-zero — the LSTM remembered information from t=1 via the cell state. A standard RNN with just tanh would have this memory squeezed and potentially vanish. The cell state Cₜ persisted because forget gate ~0.51 kept it alive.
+</div>
+
+<div class="subsec">Why LSTM Doesn't Have Vanishing Gradient</div>
+<div class="math">
+<span class="cm">Standard RNN gradient chain:</span><br>
+∂sₜ/∂s₀ = ∏ⱼ₌₁ᵗ (∂sⱼ/∂sⱼ₋₁) = ∏ⱼ₌₁ᵗ tanh'(·) × W   <span class="rd">← each term &lt; 1, product → 0</span><br>
+<br>
+<span class="cm">LSTM cell state gradient chain:</span><br>
+∂Cₜ/∂Cₜ₋₁ = fₜ   <span class="gn">← just the forget gate value (learned, not squeezed by tanh)</span><br>
+<br>
+∂Cₜ/∂C₀ = ∏ⱼ₌₁ᵗ fⱼ   <span class="gn">← product of forget gates ≈ 1 if network learns to keep them near 1</span><br>
+<br>
+<span class="wh">This is the "Constant Error Carousel" — gradient flows through Cₜ unchanged,</span><br>
+<span class="wh">no squashing function in the direct path → vanishing gradient solved!</span>
+</div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- PART 3: GRU MATH                   -->
+<!-- ═══════════════════════════════════ -->
+<div id="p3">
+<div class="sec-hdr"><div class="sec-num">৩</div><h2>GRU — Full Algorithm &amp; End-to-End Example <span class="tag tag-math">Math</span></h2></div>
+
+<div class="subsec">The 4 GRU Equations (Memorize These!)</div>
+<div class="math">
+<span class="cm">━━━━━━━ GRU CORE EQUATIONS ━━━━━━━</span><br>
+<span class="chip-z" style="background:transparent;color:#cc88ff">UPDATE GATE:</span>  <span class="hl">zₜ = σ(Wz·xₜ + Uz·hₜ₋₁)</span>    <span class="cm">← how much past info to carry forward?</span><br>
+<span class="chip-r" style="background:transparent;color:#ffaa66">RESET GATE: </span>  <span class="hl">rₜ = σ(Wr·xₜ + Ur·hₜ₋₁)</span>    <span class="cm">← how much past info to FORGET when computing new info?</span><br>
+<span class="am">CANDIDATE:  </span>  <span class="hl">h̃ₜ = tanh(Wh·xₜ + rₜ ⊙ Uh·hₜ₋₁)</span>  <span class="cm">← new candidate hidden state (reset gate applied)</span><br>
+<span class="gn">NEW HIDDEN: </span>  <span class="hl">hₜ = (1−zₜ) ⊙ hₜ₋₁ + zₜ ⊙ h̃ₜ</span>  <span class="cm">← interpolate: keep old OR use new</span><br>
+<br>
+<span class="cm">━━━ Intuition of the final equation ━━━</span><br>
+<span class="wh">If zₜ=0:</span> hₜ = 1×hₜ₋₁ + 0×h̃ₜ = hₜ₋₁   <span class="cm">← completely ignore new input, keep old hidden state</span><br>
+<span class="wh">If zₜ=1:</span> hₜ = 0×hₜ₋₁ + 1×h̃ₜ = h̃ₜ    <span class="cm">← completely replace with new candidate</span><br>
+<span class="wh">If zₜ=0.3:</span> hₜ = 0.7×hₜ₋₁ + 0.3×h̃ₜ  <span class="cm">← mix: 70% old + 30% new</span>
+</div>
+
+<div class="info">
+  <strong>Same setup as LSTM:</strong> xₜ scalar, hₜ scalar.<br>
+  Wz = Wr = Wh = 0.5, Uz = Ur = Uh = 0.3, all biases = 0.<br>
+  h₀ = 0, Sequence: x₁ = 1, x₂ = 0
+</div>
+
+<div class="subsec">Step 1: GRU Forward at t=1 (x₁=1, h₀=0)</div>
+<div class="math">
+<span class="cm">━━━━━━━ TIME STEP t=1, x₁=1, h₀=0 ━━━━━━━</span><br>
+<br>
+linear = Wz·x₁ + Uz·h₀ = 0.5×1 + 0.3×0 = <span class="hl">0.50</span><br>
+<br>
+<span class="pk">━━ UPDATE GATE ━━</span><br>
+z₁ = σ(0.50) = <span class="pk">0.622</span>   <span class="cm">← 62.2% new info, 37.8% old</span><br>
+<br>
+<span class="am">━━ RESET GATE ━━</span><br>
+r₁ = σ(0.50) = <span class="am">0.622</span>   <span class="cm">← keep 62.2% of hₜ₋₁ when computing candidate</span><br>
+<br>
+<span class="hl">━━ CANDIDATE h̃₁ ━━</span><br>
+h̃₁ = tanh(Wh·x₁ + r₁ ⊙ Uh·h₀)<br>
+   = tanh(0.5×1 + 0.622×0.3×0)<br>
+   = tanh(0.5 + 0)<br>
+   = tanh(0.50) = <span class="hl">0.462</span><br>
+<br>
+<span class="gn">━━ NEW HIDDEN STATE ━━</span><br>
+h₁ = (1 − z₁) × h₀ + z₁ × h̃₁<br>
+   = (1 − 0.622) × 0  +  0.622 × 0.462<br>
+   = 0.378 × 0  +  0.622 × 0.462<br>
+   = 0  +  0.287<br>
+   <span class="res">= 0.287</span>
+</div>
+
+<div class="subsec">Step 2: GRU Forward at t=2 (x₂=0, h₁=0.287)</div>
+<div class="math">
+<span class="cm">━━━━━━━ TIME STEP t=2, x₂=0, h₁=0.287 ━━━━━━━</span><br>
+<br>
+linear = Wz·x₂ + Uz·h₁ = 0.5×0 + 0.3×0.287 = 0 + 0.086 = <span class="hl">0.086</span><br>
+<br>
+<span class="pk">━━ UPDATE GATE ━━</span><br>
+z₂ = σ(0.086) = 1/(1+e⁻⁰·⁰⁸⁶) = 1/(1+0.917) = <span class="pk">0.521</span><br>
+<span class="cm">← 52.1% new info, 47.9% old</span><br>
+<br>
+<span class="am">━━ RESET GATE ━━</span><br>
+r₂ = σ(0.086) = <span class="am">0.521</span><br>
+<br>
+<span class="hl">━━ CANDIDATE h̃₂ ━━</span><br>
+h̃₂ = tanh(Wh·x₂ + r₂ ⊙ Uh·h₁)<br>
+   = tanh(0.5×0 + 0.521×0.3×0.287)<br>
+   = tanh(0 + 0.044855)<br>
+   = tanh(0.0449) = <span class="hl">0.0448</span><br>
+<br>
+<span class="gn">━━ NEW HIDDEN STATE ━━</span><br>
+h₂ = (1 − z₂) × h₁  +  z₂ × h̃₂<br>
+   = (1 − 0.521) × 0.287  +  0.521 × 0.0448<br>
+   = 0.479 × 0.287  +  0.521 × 0.0448<br>
+   = 0.1375  +  0.0233<br>
+   <span class="res">= 0.161</span>
+</div>
+
+<div class="subsec">GRU State Summary</div>
+<div class="tw">
+<table>
+  <tr><th>Time</th><th>xₜ</th><th>zₜ (update)</th><th>rₜ (reset)</th><th>h̃ₜ (candidate)</th><th>hₜ (hidden state)</th></tr>
+  <tr><td>t=0</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0.000</td></tr>
+  <tr class="ok-row"><td>t=1</td><td>1</td><td>0.622</td><td>0.622</td><td>0.462</td><td><strong>0.287</strong></td></tr>
+  <tr class="hl-row"><td>t=2</td><td>0</td><td>0.521</td><td>0.521</td><td>0.0448</td><td><strong>0.161</strong></td></tr>
+</table>
+</div>
+
+<div class="subsec">LSTM vs GRU Side-by-Side Comparison</div>
+<div class="compare">
+  <div class="ccard"><h4 style="color:#1a2a6c">LSTM</h4><ul>
+    <li>2 states: Cₜ (long-term) + hₜ (short-term)</li>
+    <li>3 gates + 1 candidate = 4 equations</li>
+    <li>Separate forget &amp; input gates</li>
+    <li>More parameters → slower training</li>
+    <li>Better for very long sequences</li>
+    <li>Cell state = direct gradient highway</li>
+  </ul></div>
+  <div class="ccard"><h4 style="color:#2a6c1a">GRU</h4><ul>
+    <li>1 state: hₜ (combined memory)</li>
+    <li>2 gates + 1 candidate = 3 equations (+ final hₜ)</li>
+    <li>Update gate = forget + input combined</li>
+    <li>Fewer parameters → faster training</li>
+    <li>Often comparable performance to LSTM</li>
+    <li>Simpler architecture, easier to tune</li>
+  </ul></div>
+</div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- PART 4: BiRNN                      -->
+<!-- ═══════════════════════════════════ -->
+<div id="p4">
+<div class="sec-hdr"><div class="sec-num">৪</div><h2>BiRNN (Bidirectional RNN) — Why &amp; How <span class="tag tag-math">Math</span></h2></div>
+
+<div class="bn-box">
+  <h4>🔷 কেন BiRNN দরকার?</h4>
+  <p>Standard RNN শুধু left-to-right পড়ে — আগের context দেখে পরের word predict করে। কিন্তু অনেক NLP task-এ future context-ও দরকার।</p>
+  <p>উদাহরণ: "He said, 'Teddy _____ is cute.'" — blank কী হবে? "bear" নাকি "Roosevelt"? এটা বুঝতে পরের word দেখা দরকার।</p>
+  <p>আরেকটি উদাহরণ: Named Entity Recognition-এ "Paris" → city নাকি person name? পরের context দেখলে বোঝা যায়।</p>
+  <p><strong>BiRNN solution:</strong> দুটো RNN parallel-এ চালাও — একটা left→right, একটা right→left। তাদের hidden state concatenate করে পুরো context পাও।</p>
+</div>
+
+<div class="subsec">BiRNN Architecture &amp; Forward Flow</div>
+<div class="math">
+<span class="cm">━━━━━━━ BiRNN STRUCTURE ━━━━━━━</span><br>
+<br>
+<span class="cm">Forward RNN (left to right):</span><br>
+<span class="gn">h⃗ₜ = tanh(W⃗·xₜ + U⃗·h⃗ₜ₋₁ + b⃗)</span>   <span class="cm">← processes x₁, x₂, x₃, ..., xₜ in order</span><br>
+<br>
+<span class="cm">Backward RNN (right to left):</span><br>
+<span class="rd">h⃐ₜ = tanh(W⃐·xₜ + U⃐·h⃐ₜ₊₁ + b⃐)</span>  <span class="cm">← processes xₜ, xₜ₋₁, ..., x₁ in reverse</span><br>
+<br>
+<span class="cm">Final output (concatenation):</span><br>
+<span class="wh">yₜ = V·[h⃗ₜ ; h⃐ₜ] + c</span>   <span class="cm">← [;] means concatenate. Output sees BOTH past and future.</span><br>
+<br>
+<span class="cm">If hidden size = d, then [h⃗ₜ ; h⃐ₜ] has size 2d</span>
+</div>
+
+<div class="subsec">Complete Mathematical Example — Sentiment Analysis</div>
+<div class="info">
+  <strong>Task:</strong> Classify "I love this" as positive/negative.<br>
+  <strong>Sequence:</strong> x₁="I", x₂="love", x₃="this" (each encoded as a number for simplicity)<br>
+  <strong>x₁=0.1, x₂=0.9, x₃=0.2</strong> | W⃗=W⃐=0.6, U⃗=U⃐=0.4, all biases=0, h₀=h₄=0
+</div>
+
+<div class="math">
+<span class="cm">━━━━━━━ FORWARD RNN (left → right) ━━━━━━━</span><br>
+<br>
+<span class="gn">h⃗₁</span> = tanh(W⃗·x₁ + U⃗·h⃗₀) = tanh(0.6×0.1 + 0.4×0) = tanh(0.06) = <span class="gn">0.060</span><br>
+<span class="cm">h⃗₁ captures: context from "I" only</span><br>
+<br>
+<span class="gn">h⃗₂</span> = tanh(W⃗·x₂ + U⃗·h⃗₁) = tanh(0.6×0.9 + 0.4×0.060) = tanh(0.54+0.024) = tanh(0.564) = <span class="gn">0.511</span><br>
+<span class="cm">h⃗₂ captures: context from "I love"</span><br>
+<br>
+<span class="gn">h⃗₃</span> = tanh(W⃗·x₃ + U⃗·h⃗₂) = tanh(0.6×0.2 + 0.4×0.511) = tanh(0.12+0.204) = tanh(0.324) = <span class="gn">0.314</span><br>
+<span class="cm">h⃗₃ captures: full left context "I love this"</span>
+</div>
+
+<div class="math">
+<span class="cm">━━━━━━━ BACKWARD RNN (right → left) ━━━━━━━</span><br>
+<br>
+<span class="rd">h⃐₃</span> = tanh(W⃐·x₃ + U⃐·h⃐₄) = tanh(0.6×0.2 + 0.4×0) = tanh(0.12) = <span class="rd">0.120</span><br>
+<span class="cm">h⃐₃ captures: context from "this" only (no future)</span><br>
+<br>
+<span class="rd">h⃐₂</span> = tanh(W⃐·x₂ + U⃐·h⃐₃) = tanh(0.6×0.9 + 0.4×0.120) = tanh(0.54+0.048) = tanh(0.588) = <span class="rd">0.528</span><br>
+<span class="cm">h⃐₂ captures: context from "love this"</span><br>
+<br>
+<span class="rd">h⃐₁</span> = tanh(W⃐·x₁ + U⃐·h⃐₂) = tanh(0.6×0.1 + 0.4×0.528) = tanh(0.06+0.211) = tanh(0.271) = <span class="rd">0.266</span><br>
+<span class="cm">h⃐₁ captures: full right context at position 1 ("I" + saw future "love this")</span>
+</div>
+
+<div class="math">
+<span class="cm">━━━━━━━ COMBINED REPRESENTATIONS ━━━━━━━</span><br>
+<br>
+Position 1 ("I"):    y₁ = [<span class="gn">h⃗₁</span>; <span class="rd">h⃐₁</span>] = [<span class="gn">0.060</span>, <span class="rd">0.266</span>]<br>
+<span class="cm">                    Forward: only "I" | Backward: "I love this" future context ✓</span><br>
+<br>
+Position 2 ("love"): y₂ = [<span class="gn">h⃗₂</span>; <span class="rd">h⃐₂</span>] = [<span class="gn">0.511</span>, <span class="rd">0.528</span>]<br>
+<span class="cm">                    Forward: "I love" | Backward: "love this" ← BOTH sides! ✓</span><br>
+<br>
+Position 3 ("this"): y₃ = [<span class="gn">h⃗₃</span>; <span class="rd">h⃐₃</span>] = [<span class="gn">0.314</span>, <span class="rd">0.120</span>]<br>
+<span class="cm">                    Forward: full sentence | Backward: only "this"</span><br>
+<br>
+<span class="wh">If using last states for sequence classification:</span><br>
+<span class="wh">final = [h⃗₃; h⃐₁] = [0.314, 0.266]</span>  <span class="cm">← forward last + backward first = full sentence representation</span>
+</div>
+
+<div class="subsec">State Table for BiRNN</div>
+<div class="tw">
+<table>
+  <tr><th>Position</th><th>Word</th><th>h⃗ₜ (forward)</th><th>Context captured (fwd)</th><th>h⃐ₜ (backward)</th><th>Context captured (bwd)</th></tr>
+  <tr><td>t=1</td><td>"I"</td><td style="color:#1a6a1a;font-weight:700">0.060</td><td>Only "I"</td><td style="color:#6a1a1a;font-weight:700">0.266</td><td>"I"+"love"+"this"</td></tr>
+  <tr class="ok-row"><td>t=2</td><td>"love"</td><td style="color:#1a6a1a;font-weight:700">0.511</td><td>"I"+"love"</td><td style="color:#6a1a1a;font-weight:700">0.528</td><td>"love"+"this"</td></tr>
+  <tr><td>t=3</td><td>"this"</td><td style="color:#1a6a1a;font-weight:700">0.314</td><td>"I"+"love"+"this"</td><td style="color:#6a1a1a;font-weight:700">0.120</td><td>Only "this"</td></tr>
+</table>
+</div>
+
+<div class="ok">
+  <strong>Key insight:</strong> At position t=2 ("love"), the forward hidden state h⃗₂ = 0.511 carries left context ("I love"), and the backward hidden state h⃐₂ = 0.528 carries right context ("love this"). Concatenated [0.511, 0.528] gives the model information from BOTH directions simultaneously — something no unidirectional RNN can do.
+</div>
+
+<div class="bn-box">
+  <h4>🔷 BiRNN কখন use করবো?</h4>
+  <ul>
+    <li><strong>YES — Named Entity Recognition:</strong> "Apple is a company" vs "I ate an apple" → context দুই দিক থেকে দেখা দরকার</li>
+    <li><strong>YES — Machine Translation (encoder):</strong> পুরো source sentence encode করতে BiRNN ভালো</li>
+    <li><strong>YES — Sentiment Analysis:</strong> পুরো sentence-এর context একসাথে দরকার</li>
+    <li><strong>NO — Language Generation:</strong> Future token দেখা যাবে না (cheating হবে), তাই unidirectional use করতে হবে</li>
+    <li><strong>NO — Real-time speech recognition:</strong> Future data এখনও আসেনি</li>
+  </ul>
+</div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- PART 5: PROFESSOR Q&A              -->
+<!-- ═══════════════════════════════════ -->
+<div id="p5">
+<div class="sec-hdr"><div class="sec-num">৫</div><h2>Professor's Explicit Questions &amp; Answers <span class="tag tag-en">English</span></h2></div>
+
+<div class="qa">
+  <div class="qa-q">Q1. What is the Vanishing Gradient Problem in RNN, and why does it occur?</div>
+  <div class="qa-a">
+    <p>In BPTT, the gradient of the loss with respect to early parameters requires multiplying together many Jacobian matrices — one per time step. The formula is:</p>
+    <p style="margin:.5rem 0;font-family:monospace;font-size:.85rem;background:#f5f4f0;padding:6px 10px;border-radius:4px">∂E₃/∂W = Σₖ₌₀³ (∂E₃/∂ŷ₃)(∂ŷ₃/∂s₃)(∂s₃/∂sₖ)(∂sₖ/∂W)</p>
+    The term ∂s₃/∂sₖ involves a product of Jacobians: ∏ⱼ ∂sⱼ/∂sⱼ₋₁. Since tanh maps values to (-1,1) and its derivative is bounded by 1, and the Jacobian 2-norm has an upper bound of 1, this product shrinks exponentially with time. Gradient contributions from distant time steps become effectively zero — the model cannot learn long-range dependencies. Depending on activation and weights, gradients can also explode (>1 repeatedly multiplied).
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q2. What is the difference between short-term and long-term dependencies in RNN?</div>
+  <div class="qa-a">
+    <ul>
+      <li><strong>Short-term dependency:</strong> The relevant context is close to the prediction point. Example: "The clouds are in the ___" — just the last 2-3 words matter. Standard RNN handles this well because gradients don't need to travel far.</li>
+      <li><strong>Long-term dependency:</strong> The relevant context is far back in the sequence. Example: "I grew up in India… I speak fluent ___" — "Hindi" depends on "India" which appeared many steps ago. Standard RNN fails here because gradients vanish before reaching early time steps.</li>
+    </ul>
+    <p>LSTM/GRU solve long-term dependencies through their gating mechanisms and cell state (constant error carousel).</p>
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q3. Explain the LSTM gates — what does each one do?</div>
+  <div class="qa-a">
+    <p>LSTM has 3 sigmoid gates (each outputs 0–1, acting as a percentage/valve) + 1 tanh candidate:</p>
+    <ul>
+      <li><span class="chip-f">Forget Gate fₜ = σ(Wf·[hₜ₋₁, xₜ] + bf)</span> — Decides what fraction of the old cell state Cₜ₋₁ to keep. fₜ≈0 = forget everything, fₜ≈1 = keep everything. Example: when reading a new subject in a sentence, forget the old subject's gender.</li>
+      <li><span class="chip-i">Input Gate iₜ = σ(Wi·[hₜ₋₁, xₜ] + bi)</span> — Decides how much of the new candidate information to write to memory. Works together with C̃ₜ.</li>
+      <li><span class="chip-c">Candidate C̃ₜ = tanh(Wc·[hₜ₋₁, xₜ] + bc)</span> — Creates candidate new values (range -1 to +1) using current input and previous hidden state. This is the "what to potentially add."</li>
+      <li><span class="chip-o">Output Gate oₜ = σ(Wo·[hₜ₋₁, xₜ] + bo)</span> — Decides which parts of the cell state to output as hₜ. Applies tanh to cell state first, then gates it.</li>
+    </ul>
+    <p>f and i are different because Wf ≠ Wi — they are separate learned weight matrices.</p>
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q4. What is the Cell State in LSTM, and why is it called "long-term memory"?</div>
+  <div class="qa-a">
+    <p>The cell state Cₜ is a vector that runs horizontally through the LSTM chain with only minor linear interactions (forget gate multiplication + input gate addition). The update rule is:</p>
+    <p style="margin:.5rem 0;font-family:monospace;font-size:.85rem;background:#f5f4f0;padding:6px 10px;border-radius:4px">Cₜ = fₜ ⊙ Cₜ₋₁ + iₜ ⊙ C̃ₜ</p>
+    <p>It is called long-term memory because: (1) it is not passed through tanh before being carried forward — so it doesn't get squeezed; (2) the gradient flows through it via ∂Cₜ/∂Cₜ₋₁ = fₜ, which the network learns to keep near 1 when memory must be preserved; (3) information stored in Cₜ at an early step can persist for many steps without vanishing.</p>
+    <p>The hidden state hₜ = oₜ ⊙ tanh(Cₜ) is the short-term memory — it is the actual output at each time step and changes more drastically.</p>
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q5. What is the "Constant Error Carousel" in LSTM?</div>
+  <div class="qa-a">
+    <p>The Constant Error Carousel (CEC) refers to the self-recurrent connection in the memory cell where the weight is fixed at 1 (not learned, not decayed). This creates a direct path for gradient to flow backwards through time without multiplicative decay.</p>
+    <p>In mathematical terms: the gradient ∂Cₜ/∂Cₜ₋₁ = fₜ. If the forget gate learns to output values near 1 when memory should be preserved, this product ∏fⱼ ≈ 1 — the gradient doesn't vanish. The gates regulate whether information enters or exits, but the cell state itself maintains a "constant error" highway.</p>
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q6. What are the differences between LSTM and GRU?</div>
+  <div class="qa-a">
+    <table style="text-align:left">
+      <tr><th>Aspect</th><th>LSTM</th><th>GRU</th></tr>
+      <tr><td>States</td><td>2 (Cₜ + hₜ)</td><td>1 (hₜ only)</td></tr>
+      <tr><td>Gates</td><td>3 gates + 1 candidate</td><td>2 gates + 1 candidate</td></tr>
+      <tr><td>Forget &amp; Input</td><td>Separate gates</td><td>Combined as Update gate</td></tr>
+      <tr><td>Parameters</td><td>More (4 weight matrices)</td><td>Fewer (3 weight matrices)</td></tr>
+      <tr><td>Speed</td><td>Slower to train</td><td>Faster to train</td></tr>
+      <tr><td>Performance</td><td>Better for very long sequences</td><td>Often comparable, simpler</td></tr>
+    </table>
+    <p style="margin-top:.5rem">GRU merges the forget and input gate into a single update gate zₜ. When zₜ is high, more new information is used; when zₜ is low, old hidden state is preserved. GRU has no separate cell state — everything is in hₜ.</p>
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q7. Explain the GRU Update Gate and Reset Gate — what is the intuition?</div>
+  <div class="qa-a">
+    <ul>
+      <li><strong>Update Gate zₜ = σ(Wz·xₜ + Uz·hₜ₋₁):</strong> Controls how much of the past hidden state to carry forward. It is the interpolation coefficient in hₜ = (1−zₜ)⊙hₜ₋₁ + zₜ⊙h̃ₜ. If zₜ≈0: keep the old state almost entirely (memory preserved). If zₜ≈1: replace with new candidate. This is the combined effect of LSTM's forget AND input gates.</li>
+      <li><strong>Reset Gate rₜ = σ(Wr·xₜ + Ur·hₜ₋₁):</strong> Controls how much of the previous hidden state to use when computing the new candidate h̃ₜ = tanh(Wh·xₜ + rₜ ⊙ Uh·hₜ₋₁). If rₜ≈0: ignore previous hidden state when creating new candidate (equivalent to starting fresh). If rₜ≈1: use full previous context. This gate allows the model to drop irrelevant history.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q8. What is BPTT (Backpropagation Through Time)? Why are hidden states saved in memory?</div>
+  <div class="qa-a">
+    <p>BPTT is the algorithm for training RNNs. Since the same weights (U, W, V) are shared across all time steps, the total gradient is the sum of gradients from each time step: ∂E/∂W = Σₜ ∂Eₜ/∂W.</p>
+    <p>Computing ∂Eₜ/∂W requires going back through all previous time steps via chain rule. For example, ∂E₃/∂W requires ∂s₃/∂s₂, ∂s₂/∂s₁, ∂s₁/∂s₀ — all intermediate hidden states.</p>
+    <p>This is why all hidden states h₀, h₁, ..., hₜ must be stored in memory during the forward pass — they are needed during the backward pass to compute these chain rule terms. This creates a memory constraint because sequences can be very long (e.g., h₀ through h₁₀,₀₀₀ must all be stored).</p>
+  </div>
+</div>
+
+<div class="qa">
+  <div class="qa-q">Q9. Why can't we use BiRNN for language generation / real-time applications?</div>
+  <div class="qa-a">
+    <p>BiRNN requires the entire sequence to be available before processing begins — the backward RNN reads from right to left, so it needs all future tokens. This makes BiRNN unsuitable for:</p>
+    <ul>
+      <li><strong>Language generation</strong> (e.g., GPT): At each step, you must generate the next token without seeing future tokens. Using BiRNN would constitute cheating — the model would see the very word it's supposed to predict.</li>
+      <li><strong>Real-time speech recognition</strong>: Future audio hasn't been recorded yet.</li>
+      <li><strong>Online/streaming tasks</strong>: Data arrives sequentially and predictions must be made immediately.</li>
+    </ul>
+    <p>BiRNN is appropriate for tasks where the entire input is available before producing output: sentiment analysis, NER, machine translation encoding, question answering.</p>
+  </div>
+</div>
+
+</div>
+
+<div style="text-align:center;color:#999;font-size:.75rem;padding:2rem 0;font-family:sans-serif">
+  LSTM + GRU + BiRNN Final Exam Guide &mdash; All topics from PDF covered
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word2Vec — Final Exam Study Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; background: #fafaf8; color: #1a1a1a; line-height: 1.75; font-size: 15px; }
+  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* Header */
+  .hero { background: #1a1a2e; color: #e8e8e0; padding: 2rem 2rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+  .hero h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; color: #fff; }
+  .hero p { font-size: 0.9rem; color: #aaa; margin-top: 0.4rem; }
+  .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1rem; }
+  .tag { background: #2e2e50; color: #b8b0ff; font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-family: monospace; }
+
+  /* TOC */
+  .toc { background: #fff; border: 1px solid #e0ddd5; border-radius: 10px; padding: 1.2rem 1.5rem; margin-bottom: 2rem; }
+  .toc h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 0.8rem; }
+  .toc ol { padding-left: 1.2rem; }
+  .toc li { font-size: 0.9rem; margin-bottom: 0.3rem; }
+  .toc a { color: #4a3f9f; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Section headers */
+  .section-header { display: flex; align-items: center; gap: 12px; margin: 2.5rem 0 1.2rem; padding-bottom: 0.6rem; border-bottom: 2px solid #e0ddd5; }
+  .section-num { background: #4a3f9f; color: #fff; font-size: 0.75rem; font-weight: 700; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .section-header h2 { font-size: 1.2rem; font-weight: 700; color: #1a1a2e; }
+  .sub-header { font-size: 1rem; font-weight: 700; color: #2e2e50; margin: 1.5rem 0 0.6rem; padding-left: 0.8rem; border-left: 3px solid #4a3f9f; }
+
+  /* Bangla box */
+  .bangla-box { background: #fff; border: 1px solid #e0ddd5; border-radius: 10px; padding: 1.2rem 1.5rem; margin-bottom: 1rem; font-family: 'SolaimanLipi', 'Kalpurush', Arial, sans-serif; }
+  .bangla-box h4 { font-size: 0.85rem; font-weight: 700; color: #4a3f9f; margin-bottom: 0.6rem; font-family: sans-serif; }
+  .bangla-box p { font-size: 0.95rem; line-height: 1.9; margin-bottom: 0.5rem; }
+  .bangla-box ul { padding-left: 1.2rem; }
+  .bangla-box li { font-size: 0.95rem; line-height: 1.9; margin-bottom: 0.3rem; }
+
+  /* Math / code blocks */
+  .math-block { background: #1a1a2e; color: #e8f4e8; font-family: 'Courier New', monospace; font-size: 0.82rem; padding: 1rem 1.2rem; border-radius: 8px; overflow-x: auto; margin: 0.8rem 0; line-height: 1.8; }
+  .math-block .comment { color: #7a9f7a; }
+  .math-block .highlight { color: #ffd080; font-weight: bold; }
+  .math-block .result { color: #80d4ff; font-weight: bold; }
+
+  /* Step cards */
+  .steps { counter-reset: step; }
+  .step { background: #fff; border: 1px solid #e0ddd5; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 0.8rem; display: flex; gap: 12px; }
+  .step-num { background: #f0eeff; color: #4a3f9f; font-size: 0.75rem; font-weight: 700; min-width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: sans-serif; }
+  .step-content { flex: 1; }
+  .step-content strong { font-size: 0.9rem; color: #1a1a2e; display: block; margin-bottom: 0.3rem; font-family: sans-serif; }
+  .step-content p { font-size: 0.88rem; line-height: 1.65; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin: 0.8rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.82rem; font-family: sans-serif; }
+  th { background: #2e2e50; color: #fff; padding: 7px 10px; text-align: center; }
+  td { border: 1px solid #e0ddd5; padding: 6px 10px; text-align: center; }
+  tr:nth-child(even) td { background: #f8f7f2; }
+  .highlight-row td { background: #fef9e0 !important; font-weight: bold; }
+  .target-row td { background: #e8f4e8 !important; }
+
+  /* Info / warning boxes */
+  .info-box { background: #f0eeff; border-left: 3px solid #4a3f9f; padding: 0.8rem 1rem; border-radius: 0 8px 8px 0; margin: 0.8rem 0; font-size: 0.88rem; font-family: sans-serif; }
+  .warn-box { background: #fff8e8; border-left: 3px solid #c97b00; padding: 0.8rem 1rem; border-radius: 0 8px 8px 0; margin: 0.8rem 0; font-size: 0.88rem; font-family: sans-serif; }
+  .success-box { background: #e8f9ee; border-left: 3px solid #1a8a4a; padding: 0.8rem 1rem; border-radius: 0 8px 8px 0; margin: 0.8rem 0; font-size: 0.88rem; font-family: sans-serif; }
+
+  /* Q&A */
+  .qa-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 10px; margin-bottom: 1.2rem; overflow: hidden; }
+  .qa-q { background: #2e2e50; color: #e8e8ff; padding: 0.8rem 1.2rem; font-size: 0.88rem; font-weight: 700; font-family: sans-serif; }
+  .qa-a { padding: 1rem 1.2rem; font-size: 0.88rem; line-height: 1.7; font-family: sans-serif; }
+  .qa-a ul { padding-left: 1.2rem; margin-top: 0.5rem; }
+  .qa-a li { margin-bottom: 0.3rem; }
+
+  /* Inline emphasis */
+  code { background: #f0eeff; color: #4a3f9f; padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 0.85em; }
+  .eq { font-family: 'Courier New', monospace; font-size: 0.88rem; background: #f5f4f0; padding: 4px 10px; border-radius: 4px; display: inline-block; margin: 2px 0; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid #e0ddd5; margin: 2rem 0; }
+
+  .label { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 4px; margin-right: 6px; font-family: sans-serif; }
+  .label-bn { background: #e8f0ff; color: #1a40a0; }
+  .label-en { background: #e8ffe8; color: #1a6a1a; }
+  .label-math { background: #fff0e8; color: #a04000; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Word2Vec — Final Exam Study Guide</h1>
+  <p>3rd Year Machine Learning | Covers: Word Embedding, CBOW, Skip-gram, Negative Sampling, N-gram, Language Modeling</p>
+  <div class="tag-row">
+    <span class="tag">Word2Vec</span>
+    <span class="tag">CBOW</span>
+    <span class="tag">Skip-gram</span>
+    <span class="tag">Negative Sampling</span>
+    <span class="tag">N-gram LM</span>
+    <span class="tag">Cosine Similarity</span>
+    <span class="tag">Backprop</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#part1">Bangla Theoretical Summary</a> — সম্পূর্ণ বাংলায় তত্ত্ব</li>
+    <li><a href="#cbow">CBOW — Step-by-Step with Numbers</a></li>
+    <li><a href="#skipgram">Skip-gram — Step-by-Step with Numbers</a></li>
+    <li><a href="#negsampling">Negative Sampling — Full Explanation</a></li>
+    <li><a href="#prof-qa">Professor's Explicit Questions & Answers</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<!--  PART 1: BANGLA THEORY                                        -->
+<!-- ============================================================ -->
+<div id="part1">
+  <div class="section-header">
+    <div class="section-num">১</div>
+    <h2>বাংলায় Theoretical Summary <span class="label label-bn">বাংলা</span></h2>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 Word Embedding কী?</h4>
+    <p>Machine directly কোনো word-এর উপর algorithm apply করতে পারে না। তাই প্রতিটি word-কে একটি সংখ্যার vector-এ convert করতে হয়। এই প্রক্রিয়াকে <strong>Word Embedding</strong> বলে।</p>
+    <ul>
+      <li><strong>Frequency-based:</strong> Bag of Words, TF-IDF — word count গণনা করে। কিন্তু semantic meaning ধরতে পারে না।</li>
+      <li><strong>Prediction-based:</strong> Word2Vec — Neural Network দিয়ে context থেকে meaning শেখে।</li>
+    </ul>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 Word2Vec কেন দরকার? One-Hot-এর সমস্যা কী?</h4>
+    <p>One-Hot encoding-এ প্রতিটি word একটি sparse vector হয়। vocabulary যদি 10,000 হয়, প্রতিটি word 10,000 dimension-এর vector — যেখানে মাত্র একটি জায়গায় 1, বাকি সব 0।</p>
+    <ul>
+      <li><strong>সমস্যা ১:</strong> অনেক বড় vector (high dimensionality) — computationally ব্যয়বহুল।</li>
+      <li><strong>সমস্যা ২:</strong> Semantic similarity বোঝা যায় না। "apple" আর "orange" contextually similar, কিন্তু one-hot-এ সম্পূর্ণ আলাদা।</li>
+    </ul>
+    <p>Word2Vec এই সমস্যা সমাধান করে। এটি প্রতিটি word-কে একটি <strong>dense, low-dimensional vector</strong>-এ convert করে (যেমন 300 dimension), যেখানে similar meaning-এর word-গুলো vector space-এ কাছাকাছি থাকে।</p>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 Word2Vec-এর মূল ধারণা — "Fake Problem" trick</h4>
+    <p>Word2Vec সরাসরি word-কে vector-এ convert করতে পারে না। তাই এটি একটি <strong>dummy/fake problem</strong> তৈরি করে। সেই fake problem solve করতে গিয়ে যে Neural Network train হয়, তার weight-গুলোই হলো আমাদের desired word vectors (embeddings)।</p>
+    <p><strong>মূল idea:</strong> "similar context-এ যেসব word আসে, তাদের meaning similar।" (You shall know a word by the company it keeps — J.R. Firth)</p>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 CBOW (Continuous Bag of Words)</h4>
+    <p><strong>কাজ:</strong> Context word দেখে center/target word predict করো।</p>
+    <p>Example: "watch [?] for data science" — context = {watch, for}, target = campusx।</p>
+    <ul>
+      <li>Context word-গুলোর one-hot encoding input হয়।</li>
+      <li>Hidden layer-এ তাদের embedding average করা হয়।</li>
+      <li>Softmax দিয়ে target word-এর probability বের করা হয়।</li>
+      <li>Cross-entropy loss calculate করে backpropagation করা হয়।</li>
+      <li><strong>ছোট dataset-এ CBOW ভালো কাজ করে।</strong></li>
+    </ul>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 Skip-gram</h4>
+    <p><strong>কাজ:</strong> Center/target word দেখে আশেপাশের context word-গুলো predict করো — CBOW-এর উল্টো।</p>
+    <p>Example: input = "campusx" → output = {watch, for} (window size=1 হলে)।</p>
+    <ul>
+      <li>একটি center word input নাও।</li>
+      <li>প্রতিটি context word-এর জন্য আলাদাভাবে loss calculate করো।</li>
+      <li><strong>বড় dataset-এ Skip-gram ভালো কাজ করে।</strong></li>
+    </ul>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 Negative Sampling — Softmax-এর বিকল্প</h4>
+    <p><strong>সমস্যা:</strong> Softmax-এ সম্পূর্ণ vocabulary-র উপর calculation করতে হয়। Vocabulary যদি 30 লাখ হয়, প্রতিটি training step-এ 30 লাখ word-এর probability calculate করতে হবে — এটি <strong>bottleneck</strong>।</p>
+    <p><strong>সমাধান (Negative Sampling):</strong></p>
+    <ul>
+      <li>Task পরিবর্তন করো: "এই দুটো word কি neighbor?" — হ্যাঁ/না (binary classification)।</li>
+      <li>Softmax-এর বদলে <strong>Sigmoid</strong> ব্যবহার করো।</li>
+      <li>Positive pair (actual neighbors) + কিছু randomly selected negative pair (non-neighbors) দিয়ে train করো।</li>
+      <li>Recommended: 5–20টি negative sample। বড় dataset হলে 2–5টিই যথেষ্ট।</li>
+    </ul>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 Cosine Similarity</h4>
+    <p>দুটো word vector কতটা similar তা measure করতে cosine similarity ব্যবহার হয়।</p>
+    <p>সূত্র: <code>cos(θ) = (A·B) / (|A| × |B|)</code></p>
+    <p>Value যত বড় (1 এর কাছাকাছি), তত similar। King - Man + Woman ≈ Queen।</p>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 Language Modeling ও N-gram</h4>
+    <p>Language Model-এর কাজ: পূর্ববর্তী word দেখে পরের word predict করা এবং একটি sequence-এর probability assign করা।</p>
+    <p><strong>N-gram Model:</strong> প্রতিটি word শুধু তার আগের (n-1)টি word-এর উপর depend করে (Markov assumption)।</p>
+    <ul>
+      <li>Bigram: প্রতিটি word শুধু আগের 1টি word দেখে।</li>
+      <li>Trigram: আগের 2টি word দেখে।</li>
+      <li><strong>সমস্যা:</strong> n বাড়ালে context বাড়ে, কিন্তু counting table exponentially বড় হয়ে যায়।</li>
+    </ul>
+  </div>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!--  PART 2: CBOW STEP BY STEP                                   -->
+<!-- ============================================================ -->
+<div id="cbow">
+  <div class="section-header">
+    <div class="section-num">২</div>
+    <h2>CBOW — Complete Step-by-Step Example <span class="label label-math">Math</span></h2>
+  </div>
+
+  <div class="info-box">
+    <strong>Setup:</strong> Corpus = <em>"watch campusx for data science"</em> &nbsp;|&nbsp; Vocab size V = 5 &nbsp;|&nbsp; Embedding dim N = 3 &nbsp;|&nbsp; Window size = 1 &nbsp;|&nbsp; Learning rate η = 0.1<br>
+    <strong>Training pair:</strong> Context = {watch, for} &nbsp;→&nbsp; Target = campusx
+  </div>
+
+  <div class="sub-header">Step 1 — One-Hot Encoding of All Words</div>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Word</th><th>Index</th><th>One-Hot Vector (V=5)</th></tr>
+      <tr><td>watch</td><td>0</td><td>[1, 0, 0, 0, 0]</td></tr>
+      <tr class="highlight-row"><td>campusx</td><td>1</td><td>[0, 1, 0, 0, 0]</td></tr>
+      <tr><td>for</td><td>2</td><td>[0, 0, 1, 0, 0]</td></tr>
+      <tr><td>data</td><td>3</td><td>[0, 0, 0, 1, 0]</td></tr>
+      <tr><td>science</td><td>4</td><td>[0, 0, 0, 0, 1]</td></tr>
+    </table>
+  </div>
+  <p style="font-size:0.82rem; color:#666; font-family:sans-serif; margin-top:0.3rem;">★ campusx (yellow) is our TARGET. watch and for are the CONTEXT inputs.</p>
+
+  <div class="sub-header">Step 2 — Initialize Weight Matrices (randomly)</div>
+  <p style="font-family:sans-serif; font-size:0.88rem; margin-bottom:0.5rem;">Two matrices are needed: <strong>W</strong> (Input→Hidden, size V×N = 5×3) and <strong>W'</strong> (Hidden→Output, size N×V = 3×5).</p>
+  <div class="math-block">
+<span class="comment"># W: Embedding matrix (V×N = 5×3). Each ROW = word's embedding vector.</span>
+W = 
+  watch   → [ 0.1,  0.2,  0.3 ]
+  campusx → [ 0.4,  0.5,  0.6 ]
+  for     → [ 0.7,  0.8,  0.9 ]
+  data    → [ 0.1,  0.2,  0.1 ]
+  science → [ 0.3,  0.4,  0.5 ]
+
+<span class="comment"># W': Output/Context matrix (N×V = 3×5)</span>
+W' =
+  [ 0.1,  0.2,  0.3,  0.4,  0.5 ]   row 0
+  [ 0.6,  0.7,  0.8,  0.9,  0.1 ]   row 1
+  [ 0.2,  0.3,  0.4,  0.5,  0.6 ]   row 2
+  </div>
+
+  <div class="sub-header">Step 3 — Forward Pass</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">3a</div>
+      <div class="step-content">
+        <strong>Look up embeddings of context words</strong>
+        <p>Get row from W corresponding to each context word.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+h_watch = W[0] = [ 0.1,  0.2,  0.3 ]
+h_for   = W[2] = [ 0.7,  0.8,  0.9 ]
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">3b</div>
+      <div class="step-content">
+        <strong>Average the context embeddings → hidden vector h</strong>
+        <p>CBOW averages all context word vectors to get a single hidden representation.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+h = (h_watch + h_for) / 2
+  = ([ 0.1, 0.2, 0.3 ] + [ 0.7, 0.8, 0.9 ]) / 2
+  = [ 0.8/2,  1.0/2,  1.2/2 ]
+<span class="highlight">h = [ 0.40,  0.50,  0.60 ]</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">3c</div>
+      <div class="step-content">
+        <strong>Compute raw output scores u = h · W'</strong>
+        <p>h is (1×3), W' is (3×5), so u is (1×5) — one score per vocabulary word.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+u = h @ W'   (dot product of h with each column of W')
+
+u[0] = 0.40×0.1 + 0.50×0.6 + 0.60×0.2 = 0.04 + 0.30 + 0.12 = <span class="highlight">0.46</span>  → watch
+u[1] = 0.40×0.2 + 0.50×0.7 + 0.60×0.3 = 0.08 + 0.35 + 0.18 = <span class="highlight">0.61</span>  → campusx ← target!
+u[2] = 0.40×0.3 + 0.50×0.8 + 0.60×0.4 = 0.12 + 0.40 + 0.24 = <span class="highlight">0.76</span>  → for
+u[3] = 0.40×0.4 + 0.50×0.9 + 0.60×0.5 = 0.16 + 0.45 + 0.30 = <span class="highlight">0.91</span>  → data
+u[4] = 0.40×0.5 + 0.50×0.1 + 0.60×0.6 = 0.20 + 0.05 + 0.36 = <span class="highlight">0.61</span>  → science
+
+u = [ 0.46, 0.61, 0.76, 0.91, 0.61 ]
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">3d</div>
+      <div class="step-content">
+        <strong>Apply Softmax → predicted probabilities ŷ</strong>
+        <p>Converts raw scores to probabilities that sum to 1.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+<span class="comment"># Softmax formula: ŷ[i] = exp(u[i]) / Σ exp(u[j])</span>
+
+exp(u) = [ e^0.46, e^0.61, e^0.76, e^0.91, e^0.61 ]
+       = [ 1.584,  1.840,  2.138,  2.484,  1.840 ]
+
+sum    = 1.584 + 1.840 + 2.138 + 2.484 + 1.840 = 9.886
+
+ŷ = [ 1.584/9.886,  1.840/9.886,  2.138/9.886,  2.484/9.886,  1.840/9.886 ]
+<span class="result">ŷ = [ 0.160,  0.186,  0.216,  0.251,  0.186 ]</span>
+       watch   campusx   for     data   science
+  </div>
+
+  <div class="sub-header">Step 4 — Compute Loss (Cross-Entropy)</div>
+  <div class="math-block">
+<span class="comment"># True target: campusx (index 1) → y = [0, 1, 0, 0, 0]</span>
+<span class="comment"># Cross-Entropy Loss: L = -log(ŷ[target_index])</span>
+
+L = -log(ŷ[1]) = -log(0.186) = <span class="highlight">1.682</span>
+
+<span class="comment"># Model predicted only 18.6% probability for campusx — needs improvement!</span>
+  </div>
+
+  <div class="sub-header">Step 5 — Backpropagation</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5a</div>
+      <div class="step-content">
+        <strong>Output layer error vector e</strong>
+        <p>e = ŷ − y (predicted minus actual one-hot target)</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+y   = [ 0,      1,      0,      0,      0    ]
+ŷ   = [ 0.160,  0.186,  0.216,  0.251,  0.186 ]
+
+<span class="highlight">e   = ŷ − y = [ 0.160, -0.814,  0.216,  0.251,  0.186 ]</span>
+<span class="comment"># Negative at index 1 → model should push campusx probability UP</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5b</div>
+      <div class="step-content">
+        <strong>Update output weight matrix W'</strong>
+        <p>Gradient w.r.t W' = outer product of h and e.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+<span class="comment"># ΔW' = η × outer(h, e)  where outer(h,e)[i][j] = h[i] × e[j]</span>
+
+h   = [ 0.40, 0.50, 0.60 ]
+e   = [ 0.160, -0.814, 0.216, 0.251, 0.186 ]
+
+ΔW'[0,:] = 0.1 × 0.40 × [ 0.160, -0.814, 0.216, 0.251, 0.186 ]
+         = [ 0.0064, -0.0326,  0.0086,  0.0100,  0.0074 ]
+
+ΔW'[1,:] = 0.1 × 0.50 × [ 0.160, -0.814, 0.216, 0.251, 0.186 ]
+         = [ 0.0080, -0.0407,  0.0108,  0.0126,  0.0093 ]
+
+ΔW'[2,:] = 0.1 × 0.60 × [ 0.160, -0.814, 0.216, 0.251, 0.186 ]
+         = [ 0.0096, -0.0488,  0.0130,  0.0151,  0.0112 ]
+
+<span class="highlight">W'_new = W' − ΔW'</span>  (gradient descent update)
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5c</div>
+      <div class="step-content">
+        <strong>Propagate error back to hidden layer</strong>
+        <p>Compute gradient w.r.t. h: dh = W' · e (matrix-vector product)</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+<span class="comment"># dh = W' @ e   (W' is 3×5, e is 5×1 → dh is 3×1)</span>
+
+dh[0] = 0.1×0.160 + 0.2×(−0.814) + 0.3×0.216 + 0.4×0.251 + 0.5×0.186
+      = 0.016 − 0.163 + 0.065 + 0.100 + 0.093 = <span class="highlight">0.111</span>
+
+dh[1] = 0.6×0.160 + 0.7×(−0.814) + 0.8×0.216 + 0.9×0.251 + 0.1×0.186
+      = 0.096 − 0.570 + 0.173 + 0.226 + 0.019 = <span class="highlight">−0.056</span>
+
+dh[2] = 0.2×0.160 + 0.3×(−0.814) + 0.4×0.216 + 0.5×0.251 + 0.6×0.186
+      = 0.032 − 0.244 + 0.086 + 0.126 + 0.112 = <span class="highlight">0.112</span>
+
+dh = [ 0.111, -0.056, 0.112 ]
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5d</div>
+      <div class="step-content">
+        <strong>Update W (embedding matrix) for context words only</strong>
+        <p>Only the rows corresponding to context words (watch=0, for=2) are updated. Center word rows are NOT touched in CBOW.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+<span class="comment"># For CBOW: same gradient dh is applied to EACH context word's row in W</span>
+<span class="comment"># (because each context word contributed equally to h via averaging)</span>
+
+W[0] (watch) ← W[0] − η × dh
+            = [0.1, 0.2, 0.3] − 0.1 × [0.111, -0.056, 0.112]
+            = [0.1−0.011, 0.2+0.006, 0.3−0.011]
+<span class="result">W[0]_new = [ 0.089,  0.206,  0.289 ]</span>
+
+W[2] (for) ← W[2] − η × dh
+           = [0.7, 0.8, 0.9] − 0.1 × [0.111, -0.056, 0.112]
+<span class="result">W[2]_new = [ 0.689,  0.806,  0.889 ]</span>
+
+<span class="comment"># campusx, data, science rows are unchanged this step</span>
+  </div>
+
+  <div class="success-box">
+    <strong>CBOW Complete!</strong> After many such steps over all training pairs, the rows of W become meaningful word vectors. The final embedding for "campusx" = W[1] = the learned dense vector.
+  </div>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!--  PART 3: SKIP-GRAM                                           -->
+<!-- ============================================================ -->
+<div id="skipgram">
+  <div class="section-header">
+    <div class="section-num">৩</div>
+    <h2>Skip-gram — Complete Step-by-Step Example <span class="label label-math">Math</span></h2>
+  </div>
+
+  <div class="info-box">
+    <strong>Same corpus:</strong> "watch campusx for data science" &nbsp;|&nbsp; V=5, N=3, η=0.1<br>
+    <strong>Training pair:</strong> Input (center) = campusx &nbsp;→&nbsp; Predict context = {watch, for}
+    <br><strong>Key difference from CBOW:</strong> Input is ONE word, Outputs are MULTIPLE words. NO averaging.
+  </div>
+
+  <div class="sub-header">Step 1 — One-hot encode the center word (campusx)</div>
+  <div class="math-block">
+x_campusx = [ 0, 1, 0, 0, 0 ]   (index 1 = campusx)
+  </div>
+
+  <div class="sub-header">Step 2 — Initialize same W (5×3) and W' (3×5) as before</div>
+
+  <div class="sub-header">Step 3 — Forward Pass</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">3a</div>
+      <div class="step-content">
+        <strong>Look up embedding of center word → h</strong>
+        <p>Skip-gram: NO averaging. Just look up the center word's row in W directly.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+<span class="comment"># h = W[index of center word] = W[1]  (campusx is index 1)</span>
+<span class="highlight">h = W[1] = [ 0.4,  0.5,  0.6 ]</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">3b</div>
+      <div class="step-content">
+        <strong>Compute output scores u = h · W' (same as CBOW)</strong>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+u = h @ W'
+u[0] = 0.4×0.1 + 0.5×0.6 + 0.6×0.2 = 0.04+0.30+0.12 = <span class="highlight">0.46</span>  → watch ← target context!
+u[1] = 0.4×0.2 + 0.5×0.7 + 0.6×0.3 = 0.08+0.35+0.18 = <span class="highlight">0.61</span>  → campusx
+u[2] = 0.4×0.3 + 0.5×0.8 + 0.6×0.4 = 0.12+0.40+0.24 = <span class="highlight">0.76</span>  → for ← target context!
+u[3] = 0.4×0.4 + 0.5×0.9 + 0.6×0.5 = 0.16+0.45+0.30 = <span class="highlight">0.91</span>  → data
+u[4] = 0.4×0.5 + 0.5×0.1 + 0.6×0.6 = 0.20+0.05+0.36 = <span class="highlight">0.61</span>  → science
+
+u = [ 0.46, 0.61, 0.76, 0.91, 0.61 ]
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">3c</div>
+      <div class="step-content">
+        <strong>Apply Softmax → ŷ (same computation as CBOW)</strong>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+ŷ = softmax(u) = [ 0.160, 0.186, 0.216, 0.251, 0.186 ]
+                   watch  campusx  for    data  science
+  </div>
+
+  <div class="sub-header">Step 4 — Loss (Skip-gram predicts EACH context word separately)</div>
+  <div class="warn-box">
+    In Skip-gram, we compute a separate loss for EACH context word. If context = {watch, for}, we compute two losses and SUM them.
+  </div>
+  <div class="math-block">
+<span class="comment"># Loss for predicting "watch" (index 0):</span>
+L_watch = −log(ŷ[0]) = −log(0.160) = <span class="highlight">1.833</span>
+
+<span class="comment"># Loss for predicting "for" (index 2):</span>
+L_for   = −log(ŷ[2]) = −log(0.216) = <span class="highlight">1.532</span>
+
+<span class="highlight">Total Loss L = L_watch + L_for = 1.833 + 1.532 = 3.365</span>
+  </div>
+
+  <div class="sub-header">Step 5 — Backpropagation</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5a</div>
+      <div class="step-content">
+        <strong>Error vector for predicting "watch"</strong>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+y_watch = [ 1, 0, 0, 0, 0 ]       <span class="comment"># watch is at index 0</span>
+e_watch = ŷ − y_watch
+        = [ 0.160−1, 0.186−0, 0.216−0, 0.251−0, 0.186−0 ]
+<span class="highlight">e_watch = [ −0.840,  0.186,  0.216,  0.251,  0.186 ]</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5b</div>
+      <div class="step-content">
+        <strong>Error vector for predicting "for"</strong>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+y_for   = [ 0, 0, 1, 0, 0 ]       <span class="comment"># for is at index 2</span>
+e_for   = ŷ − y_for
+        = [ 0.160, 0.186, 0.216−1, 0.251, 0.186 ]
+<span class="highlight">e_for   = [  0.160,  0.186, −0.784,  0.251,  0.186 ]</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5c</div>
+      <div class="step-content">
+        <strong>Combined error E = e_watch + e_for</strong>
+        <p>In skip-gram, the total gradient w.r.t. W' is summed over all context word errors.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+E = e_watch + e_for
+  = [−0.840+0.160,  0.186+0.186,  0.216+(−0.784),  0.251+0.251,  0.186+0.186]
+<span class="highlight">E = [ −0.680,  0.372,  −0.568,  0.502,  0.372 ]</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5d</div>
+      <div class="step-content">
+        <strong>Update W' using combined error E</strong>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+<span class="comment"># ΔW' = η × outer(h, E)</span>
+<span class="comment"># h = [0.4, 0.5, 0.6]  |  E = [−0.680, 0.372, −0.568, 0.502, 0.372]</span>
+
+ΔW'[0,:] = 0.1 × 0.4 × E = 0.04 × [−0.680, 0.372, −0.568, 0.502, 0.372]
+         = [−0.0272,  0.0149, −0.0227,  0.0201,  0.0149]
+
+<span class="comment"># (Similarly for rows 1 and 2 using h[1]=0.5, h[2]=0.6)</span>
+
+<span class="highlight">W'_new = W' − ΔW'</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">5e</div>
+      <div class="step-content">
+        <strong>Update W (only center word's row — campusx at index 1)</strong>
+        <p>In Skip-gram only the center word's embedding row is updated in W.</p>
+      </div>
+    </div>
+  </div>
+  <div class="math-block">
+<span class="comment"># dh = W' @ E   (gradient of loss w.r.t. h)</span>
+
+dh[0] = 0.1×(−0.680) + 0.2×0.372 + 0.3×(−0.568) + 0.4×0.502 + 0.5×0.372
+      = −0.068 + 0.074 − 0.170 + 0.201 + 0.186 = <span class="highlight">0.223</span>
+
+dh[1] = 0.6×(−0.680) + 0.7×0.372 + 0.8×(−0.568) + 0.9×0.502 + 0.1×0.372
+      = −0.408 + 0.260 − 0.454 + 0.452 + 0.037 = <span class="highlight">−0.113</span>
+
+dh[2] = 0.2×(−0.680) + 0.3×0.372 + 0.4×(−0.568) + 0.5×0.502 + 0.6×0.372
+      = −0.136 + 0.112 − 0.227 + 0.251 + 0.223 = <span class="highlight">0.223</span>
+
+dh = [ 0.223, -0.113, 0.223 ]
+
+<span class="comment"># Update ONLY campusx row in W:</span>
+W[1]_new = W[1] − η × dh
+         = [0.4, 0.5, 0.6] − 0.1 × [0.223, -0.113, 0.223]
+<span class="result">W[1]_new = [ 0.378,  0.511,  0.578 ]</span>
+  </div>
+
+  <div class="success-box">
+    <strong>Skip-gram Complete!</strong> After training, W[1] (campusx's row) is updated to better capture its meaning. It learned that campusx appears near watch and for.
+  </div>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!--  PART 4: NEGATIVE SAMPLING                                   -->
+<!-- ============================================================ -->
+<div id="negsampling">
+  <div class="section-header">
+    <div class="section-num">৪</div>
+    <h2>Negative Sampling — Full Explanation <span class="label label-math">Math</span></h2>
+  </div>
+
+  <div class="bangla-box">
+    <h4>🔷 কেন Negative Sampling দরকার?</h4>
+    <p>Softmax calculate করতে হলে vocabulary-র সব word-এর score বের করতে হয়। Vocabulary 30 লাখ হলে প্রতিটি step-এ 30 লাখ calculation — model অনেক slow হয়ে যায়। এটি Word2Vec-এর <strong>bottleneck</strong>।</p>
+  </div>
+
+  <div class="sub-header">The Core Idea — Change the Task</div>
+  <div class="info-box">
+    <strong>Original task (slow):</strong> "Given center word 'campusx', predict which word in the vocabulary is a neighbor?" — requires Softmax over ALL 30 lakh words.<br><br>
+    <strong>New task (fast):</strong> "Given word pair (campusx, watch) — are they neighbors? YES or NO?" — requires only one Sigmoid computation.
+  </div>
+
+  <div class="sub-header">Dataset Construction with Negative Sampling</div>
+  <p style="font-family:sans-serif; font-size:0.88rem; margin-bottom:0.5rem;">For each positive (real neighbor) pair, we add k randomly sampled negative (non-neighbor) pairs. Recommended k = 5–20.</p>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Input Word</th><th>Output Word</th><th>Label (target)</th><th>Type</th></tr>
+      <tr class="target-row"><td>campusx</td><td>watch</td><td>1</td><td>✔ Positive (real neighbor)</td></tr>
+      <tr class="target-row"><td>campusx</td><td>for</td><td>1</td><td>✔ Positive (real neighbor)</td></tr>
+      <tr><td>campusx</td><td>data</td><td>0</td><td>✘ Negative (random sample)</td></tr>
+      <tr><td>campusx</td><td>science</td><td>0</td><td>✘ Negative (random sample)</td></tr>
+      <tr><td>campusx</td><td>taco</td><td>0</td><td>✘ Negative (random from vocab)</td></tr>
+    </table>
+  </div>
+
+  <div class="sub-header">Mathematical Formulation</div>
+  <div class="math-block">
+<span class="comment"># Score for a word pair (w, c): dot product of their vectors</span>
+score(w, c) = v_w · v_c
+
+<span class="comment"># Sigmoid converts score to probability (0 to 1)</span>
+σ(x) = 1 / (1 + e^(−x))
+
+<span class="comment">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="comment"># Objective: MAXIMIZE this for each training group</span>
+
+J = log σ(v_campusx · v_watch)       ← positive pair, push toward 1
+  + log σ(−v_campusx · v_data)       ← negative pair, push toward 0
+  + log σ(−v_campusx · v_science)    ← negative pair, push toward 0
+  + log σ(−v_campusx · v_taco)       ← negative pair, push toward 0
+
+<span class="comment"># We MINIMIZE −J (negative log-likelihood)</span>
+Loss = −J
+  </div>
+
+  <div class="sub-header">Worked Numerical Example</div>
+  <div class="math-block">
+<span class="comment"># Assume (after some training):</span>
+v_campusx = [ 0.4, 0.5, 0.6 ]
+v_watch   = [ 0.1, 0.2, 0.3 ]   (positive context)
+v_data    = [ 0.1, 0.2, 0.1 ]   (negative sample)
+v_science = [ 0.3, 0.4, 0.5 ]   (negative sample)
+
+<span class="comment">━━ Positive pair (campusx, watch) ━━</span>
+dot = 0.4×0.1 + 0.5×0.2 + 0.6×0.3 = 0.04 + 0.10 + 0.18 = <span class="highlight">0.32</span>
+σ(0.32) = 1/(1+e^(−0.32)) = 1/(1+0.726) = <span class="result">0.579</span>
+Loss_pos = −log(0.579) = <span class="highlight">0.546</span>   ← want this LOW (push σ toward 1)
+
+<span class="comment">━━ Negative pair (campusx, data) ━━</span>
+dot = 0.4×0.1 + 0.5×0.2 + 0.6×0.1 = 0.04 + 0.10 + 0.06 = <span class="highlight">0.20</span>
+σ(−0.20) = 1/(1+e^(0.20)) = 1/(1+1.221) = <span class="result">0.450</span>
+Loss_neg1 = −log(0.450) = <span class="highlight">0.799</span>   ← want this LOW (push σ(−dot) toward 1)
+
+<span class="comment">━━ Negative pair (campusx, science) ━━</span>
+dot = 0.4×0.3 + 0.5×0.4 + 0.6×0.5 = 0.12 + 0.20 + 0.30 = <span class="highlight">0.62</span>
+σ(−0.62) = 1/(1+e^(0.62)) = 1/(1+1.859) = <span class="result">0.350</span>
+Loss_neg2 = −log(0.350) = <span class="highlight">1.050</span>
+
+<span class="highlight">Total Loss = 0.546 + 0.799 + 1.050 = 2.395</span>
+  </div>
+
+  <div class="sub-header">Backpropagation in Negative Sampling</div>
+  <div class="math-block">
+<span class="comment"># Gradient for positive pair (label=1): push dot product higher</span>
+∂L_pos/∂v_campusx = −(1 − σ(dot_pos)) × v_watch
+                  = −(1 − 0.579) × [0.1, 0.2, 0.3]
+                  = −0.421 × [0.1, 0.2, 0.3]
+                  = [−0.042, −0.084, −0.126]
+
+<span class="comment"># Update v_campusx += −η × gradient  (gradient descent)</span>
+v_campusx ← v_campusx − 0.1 × [−0.042, −0.084, −0.126]
+<span class="result">v_campusx ← [ 0.404, 0.508, 0.613 ]</span>  ← moves closer to v_watch!
+
+<span class="comment"># Gradient for negative pair (label=0): push dot product lower</span>
+∂L_neg/∂v_campusx = σ(dot_neg) × v_data
+                  = σ(0.20) × [0.1, 0.2, 0.1]
+                  = 0.550 × [0.1, 0.2, 0.1]   (σ(0.20) = 1/(1+e^-0.20) = 0.550)
+                  = [0.055, 0.110, 0.055]
+
+v_campusx ← v_campusx − 0.1 × [0.055, 0.110, 0.055]
+<span class="result">v_campusx ← [ 0.398, 0.497, 0.607 ]</span>  ← moves away from v_data!
+  </div>
+
+  <div class="success-box">
+    <strong>Why Negative Sampling is brilliant:</strong> We only update vectors for 1 positive + k negative words per step instead of ALL vocabulary words. Training is ~10,000× faster. The model learns to push neighbor vectors together and non-neighbor vectors apart in embedding space.
+  </div>
+
+  <div class="sub-header">Negative Sampling Probability (Hyperparameter)</div>
+  <div class="math-block">
+<span class="comment"># How to pick negative samples? Two strategies:</span>
+
+<span class="comment"># 1. By occurrence frequency (raw count)</span>
+P(w) = count(w) / Σ count(w_i)
+<span class="comment"># Problem: common words like "the", "a", "and" dominate</span>
+
+<span class="comment"># 2. Smoothed frequency (recommended — raises rare word probability)</span>
+P(w) = [ count(w)^(3/4) ] / [ Σ count(w_i)^(3/4) ]
+<span class="comment"># The 3/4 power flattens the distribution — gives rare words a fairer chance</span>
+
+<span class="comment"># Example:</span>
+P("the")    ∝ 100000^0.75 = 10000  → sampling prob = 10000/total
+P("campusx") ∝ 5^0.75 = 3.34       → sampling prob = 3.34/total
+  </div>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!--  PART 5: PROFESSOR'S QUESTIONS                               -->
+<!-- ============================================================ -->
+<div id="prof-qa">
+  <div class="section-header">
+    <div class="section-num">৫</div>
+    <h2>Professor's Explicit Questions & Model Answers <span class="label label-en">English</span></h2>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q1. How is language modeling done? (কিভাবে language modelling করা হয়?)</div>
+    <div class="qa-a">
+      <p>A language model assigns a probability to a sequence of words, and predicts the next word given the current context. Formally:</p>
+      <p style="margin:0.5rem 0; font-family:monospace; font-size:0.85rem; background:#f5f4f0; padding:6px 10px; border-radius:4px;">P(x₁,x₂,...,xT) = P(x₁) × P(x₂|x₁) × P(x₃|x₁,x₂) × ... × P(xT|x₁,...,xT₋₁)</p>
+      <p><strong>Training mechanism (sliding window):</strong></p>
+      <ul>
+        <li>Collect a large corpus of text.</li>
+        <li>Slide a window of fixed size over the text.</li>
+        <li>Each window position generates a (context → next word) training sample.</li>
+        <li>Train a model (neural or n-gram) on these samples.</li>
+        <li>Loss function = Cross-Entropy Loss. Update via gradient descent (backpropagation).</li>
+      </ul>
+      <p>Example: "The quick brown fox jumps..." — window on [The, quick, brown] predicts "fox". Window slides to [quick, brown, fox] predicts "jumps", etc.</p>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q2. Where is the bottleneck? What makes the model slow? (Bottleneck কোথায়? Model কে slow করে?)</div>
+    <div class="qa-a">
+      <p>The bottleneck is in the <strong>Softmax layer (output projection step)</strong>.</p>
+      <ul>
+        <li>After computing the hidden representation h, we must project it to the full vocabulary: <code>u = W' × h</code></li>
+        <li>Then apply Softmax: <code>ŷᵢ = exp(uᵢ) / Σⱼ exp(uⱼ)</code> — this denominator sums over ALL vocabulary words.</li>
+        <li>If vocabulary size = 3,000,000, then every single training step computes 3 million exponentials. With tens of millions of training samples, this is computationally prohibitive.</li>
+      </ul>
+      <p><strong>Solutions:</strong> Negative Sampling (convert to binary classification with Sigmoid) or Hierarchical Softmax (tree-based approximation). Negative Sampling is the most commonly used approach in Word2Vec.</p>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q3. How do you create the Skip-gram training dataset? (Skip-gram training dataset কিভাবে বানায়?)</div>
+    <div class="qa-a">
+      <p>Using a <strong>sliding window</strong> approach:</p>
+      <ul>
+        <li>Choose a center word and a window size (e.g., window = 2 means 2 words left and 2 words right).</li>
+        <li>For each position of the center word, pair it with every word in its window → these are POSITIVE pairs (label = 1).</li>
+        <li>For each positive pair, randomly sample k words from the vocabulary NOT in the window → NEGATIVE pairs (label = 0).</li>
+      </ul>
+      <p><strong>Example</strong> with "Thou shalt not make a machine…" and window=2, center="not":</p>
+      <div style="font-family:monospace; font-size:0.82rem; background:#f5f4f0; padding:8px 12px; border-radius:4px; margin:0.5rem 0;">
+        Positive: (not, thou)=1, (not, shalt)=1, (not, make)=1, (not, a)=1<br>
+        Negative: (not, aaron)=0, (not, taco)=0  &nbsp;&nbsp;← randomly sampled
+      </div>
+      <p>The window then slides to the next center word and repeats. This generates the complete training dataset used to train the Skip-gram model.</p>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q4. Do you want a large n or small n in an n-gram model?</div>
+    <div class="qa-a">
+      <p>There is a fundamental <strong>tradeoff</strong>:</p>
+      <ul>
+        <li><strong>Small n (e.g., bigram, n=2):</strong> Low memory requirement, fast computation. But loses long-range context — the model can only see 1 previous word.</li>
+        <li><strong>Large n (e.g., 5-gram):</strong> More contextual information, better predictions. But the counting table grows exponentially (vocabulary^n entries). Most n-gram combinations never appear in training data (data sparsity problem — zero probability).</li>
+      </ul>
+      <p><strong>Answer:</strong> In practice, trigrams (n=3) are most commonly used — a balance between context richness and computational feasibility. Smoothing techniques (Laplace, Kneser-Ney) are applied to handle zero-count n-grams. For large-scale NLP, neural language models (Word2Vec, Transformers) have replaced n-gram models.</p>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q5. What is special about Noam Chomsky's sentence: "Colorless green ideas sleep furiously"?</div>
+    <div class="qa-a">
+      <p>This sentence is famous in linguistics because it is <strong>grammatically correct but semantically nonsensical</strong>:</p>
+      <ul>
+        <li><strong>Grammatically valid:</strong> Subject (colorless green ideas) + Verb (sleep) + Adverb (furiously) — follows perfect English syntax.</li>
+        <li><strong>Semantically impossible:</strong> Ideas cannot be green. Green ideas cannot be colorless. Ideas do not sleep. And sleeping cannot be furious.</li>
+      </ul>
+      <p><strong>Why it matters for N-gram models:</strong> An n-gram model would assign this sentence a very low or zero probability (it never appears in training data). Yet it's syntactically correct — showing that n-gram models only capture statistical co-occurrence and NOT true linguistic structure or semantic understanding.</p>
+      <p><strong>Chomsky's point:</strong> Language understanding requires generative grammar rules, not just word frequency statistics. This was a critique of purely statistical approaches to NLP.</p>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q6. What is "Underberg"? How does Word2Vec figure out unknown words?</div>
+    <div class="qa-a">
+      <p>From your slides — the core principle Word2Vec uses: <strong>"Similar words appear in similar contexts."</strong></p>
+      <p>If we see: "I love drinking <em>Underberg</em> after a meal." / "I find <em>Underberg</em> is quite strong." / "A few bottles of <em>Underberg</em> make me very drunk." — even without knowing Underberg is a herbal liqueur, the context (drinking, strong, drunk, bottles) tells us it is an alcoholic beverage.</p>
+      <p>Word2Vec learns the vector for "Underberg" by seeing which words surround it. After training, <code>v_Underberg</code> will be close to vectors of beer, whiskey, wine, etc. — purely from contextual co-occurrence.</p>
+      <p><strong>Implication:</strong> Word2Vec can learn meaningful representations for rare, technical, or domain-specific words purely from context — no manual feature engineering needed.</p>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q7. CBOW vs. Skip-gram — When to use which?</div>
+    <div class="qa-a">
+      <ul>
+        <li><strong>CBOW:</strong> Faster to train. Better for frequent words. Averages context → good for smaller datasets. Predicts center word FROM context.</li>
+        <li><strong>Skip-gram:</strong> Slower but more accurate. Works better for rare words. Better for larger datasets. Predicts context words FROM center word.</li>
+      </ul>
+      <p>Rule of thumb from the slides: <strong>Smaller data → CBOW</strong> &nbsp;|&nbsp; <strong>Larger data → Skip-gram</strong></p>
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q8. How to improve Word2Vec embeddings quality?</div>
+    <div class="qa-a">
+      <p>Three main hyperparameter strategies (from your notes):</p>
+      <ul>
+        <li><strong>Increase training data:</strong> More diverse text → better coverage of word contexts.</li>
+        <li><strong>Increase hidden layer nodes:</strong> Larger embedding dimension (e.g., 300 instead of 50) → richer representation. But more memory and training time.</li>
+        <li><strong>Increase window size:</strong> Captures broader context. But training time increases significantly. Too large a window → relatedness rather than synonymy.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<hr>
+<div style="text-align:center; font-family:sans-serif; font-size:0.8rem; color:#999; padding:1rem 0;">
+  Word2Vec Exam Guide &mdash; Covers all topics from your PDF slides. Good luck! 🎯
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skip-gram with Negative Sampling — Full Simulation</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier New',monospace;background:#0d0d1a;color:#e0e0f0;line-height:1.7;font-size:14px}
+.page{max-width:920px;margin:0 auto;padding:2rem 1.2rem 5rem}
+
+/* hero */
+.hero{background:linear-gradient(135deg,#1a1a3e,#0d1530);border:1px solid #3a3a6a;border-radius:12px;padding:1.8rem 2rem;margin-bottom:2rem}
+.hero h1{font-size:1.5rem;color:#a0c4ff;letter-spacing:1px;margin-bottom:.4rem}
+.hero p{color:#8888aa;font-size:.82rem;font-family:sans-serif}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1rem}
+.badge{background:#1e1e4a;border:1px solid #4040a0;color:#a0a0ff;font-size:.7rem;padding:3px 10px;border-radius:20px}
+
+/* section headings */
+.sec{margin:2rem 0 1rem;padding:.6rem 1rem;background:#111128;border-left:3px solid #4a6fff;border-radius:0 8px 8px 0;font-size:.95rem;color:#c0d4ff;letter-spacing:.5px}
+.sec span{color:#6688ff;margin-right:8px}
+.subsec{margin:1.2rem 0 .6rem;color:#7799ff;font-size:.85rem;border-bottom:1px dashed #2a2a5a;padding-bottom:.3rem}
+
+/* cards */
+.card{background:#111128;border:1px solid #2a2a4a;border-radius:10px;padding:1.2rem 1.4rem;margin-bottom:1rem}
+.card-green{background:#0a1a10;border-color:#1a4a2a}
+.card-red{background:#1a0a0a;border-color:#4a1a1a}
+.card-amber{background:#141008;border-color:#3a2800}
+.card-blue{background:#0a0e1a;border-color:#1a2a5a}
+
+/* vocab / one-hot table */
+table{border-collapse:collapse;width:100%;font-size:.8rem;font-family:sans-serif}
+th{background:#1e1e50;color:#a0b0ff;padding:6px 10px;text-align:center;border:1px solid #2a2a5a}
+td{border:1px solid #1e1e3a;padding:5px 10px;text-align:center;color:#ccc}
+.row-hl td{background:#1a1a40;color:#c0d0ff}
+.row-pos td{background:#0a2010;color:#80d098}
+.row-neg td{background:#200a0a;color:#d08080}
+.row-update td{background:#0e1a08;color:#90e090;font-weight:bold}
+
+/* code blocks */
+.code{background:#060610;border:1px solid #2a2a4a;border-radius:8px;padding:1rem 1.2rem;margin:.6rem 0;overflow-x:auto;line-height:2}
+.c-gray{color:#666688}
+.c-blue{color:#6699ff}
+.c-green{color:#44bb66}
+.c-red{color:#ff6666}
+.c-amber{color:#ffaa44}
+.c-pink{color:#ff88cc}
+.c-teal{color:#44ccbb}
+.c-white{color:#ffffff;font-weight:bold}
+.c-yellow{color:#ffdd44}
+
+/* step blocks */
+.step-wrap{border-left:2px solid #2a2a6a;padding-left:1.2rem;margin-left:.5rem}
+.step-box{background:#0c0c24;border:1px solid #2a2a5a;border-radius:8px;padding:1rem 1.2rem;margin:.8rem 0}
+.step-num{display:inline-block;background:#3a3aaa;color:#fff;font-size:.72rem;padding:2px 8px;border-radius:4px;margin-bottom:.5rem;font-family:sans-serif}
+.step-title{color:#99aaff;font-family:sans-serif;font-weight:700;font-size:.88rem;margin-bottom:.5rem}
+
+/* result box */
+.result-box{background:#0a1f0a;border:1px solid #2a6a2a;border-radius:8px;padding:.8rem 1rem;margin:.6rem 0}
+.result-box .label{font-size:.7rem;color:#44aa66;font-family:sans-serif;text-transform:uppercase;letter-spacing:1px;margin-bottom:.3rem}
+.loss-box{background:#1f0a0a;border:1px solid #6a1a1a;border-radius:8px;padding:.8rem 1rem;margin:.6rem 0}
+.loss-box .label{font-size:.7rem;color:#aa4444;font-family:sans-serif;text-transform:uppercase;letter-spacing:1px;margin-bottom:.3rem}
+.update-box{background:#0a100a;border:2px solid #3a8a3a;border-radius:8px;padding:.8rem 1rem;margin:.6rem 0}
+.update-box .label{font-size:.7rem;color:#88cc88;font-family:sans-serif;text-transform:uppercase;letter-spacing:1px;margin-bottom:.3rem}
+
+/* arrow indicator */
+.arrow-right{color:#6699ff;margin:0 6px}
+.eq{color:#ffdd44;font-size:.9rem}
+
+/* tag labels */
+.tag-pos{background:#1a4a2a;color:#88ee99;font-size:.72rem;padding:1px 7px;border-radius:10px;margin-left:6px;font-family:sans-serif}
+.tag-neg{background:#4a1a1a;color:#ee8888;font-size:.72rem;padding:1px 7px;border-radius:10px;margin-left:6px;font-family:sans-serif}
+.tag-ctr{background:#1a2a5a;color:#88aaff;font-size:.72rem;padding:1px 7px;border-radius:10px;margin-left:6px;font-family:sans-serif}
+
+/* comparison */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:.8rem 0}
+.before-card{background:#1a0808;border:1px solid #5a1a1a;border-radius:8px;padding:.8rem 1rem}
+.after-card{background:#081a08;border:1px solid #1a5a1a;border-radius:8px;padding:.8rem 1rem}
+.compare-grid .lbl{font-size:.7rem;font-family:sans-serif;text-transform:uppercase;letter-spacing:1px;margin-bottom:.4rem}
+
+/* intuition boxes */
+.intuition{background:#0a0a20;border:1px solid #3a3a70;border-radius:8px;padding:1rem 1.2rem;margin:.8rem 0;font-family:sans-serif;font-size:.85rem;line-height:1.75}
+.intuition strong{color:#a0c0ff}
+
+/* separator */
+.sep{height:1px;background:linear-gradient(to right,transparent,#3a3a6a,transparent);margin:2rem 0}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>⚡ Skip-gram + Negative Sampling (SGNS)</h1>
+  <p style="font-family:sans-serif">Complete end-to-end simulation — 3 training steps with full forward pass, loss, gradients &amp; weight updates</p>
+  <div class="badge-row">
+    <span class="badge">Corpus: watch campusx for data science</span>
+    <span class="badge">Window = 2</span>
+    <span class="badge">V = 5, N = 3</span>
+    <span class="badge">k = 2 negative samples</span>
+    <span class="badge">η = 0.1</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PART 1: SETUP -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec"><span>PART 1</span> Setup — Vocabulary &amp; One-Hot Encodings</div>
+
+<div class="card">
+  <div class="subsec">Corpus &amp; Index Assignment</div>
+  <div class="code">
+<span class="c-gray"># Corpus (5 words, positions 0–4)</span><br>
+<span class="c-blue">Position 0:</span> <span class="c-white">watch</span> &nbsp;&nbsp;&nbsp;
+<span class="c-blue">Position 1:</span> <span class="c-white">campusx</span> &nbsp;&nbsp;
+<span class="c-blue">Position 2:</span> <span class="c-white">for</span><br>
+<span class="c-blue">Position 3:</span> <span class="c-white">data</span> &nbsp;&nbsp;&nbsp;
+<span class="c-blue">Position 4:</span> <span class="c-white">science</span><br>
+<br>
+<span class="c-gray"># Vocabulary (sorted by index, V = 5)</span><br>
+<span class="c-amber">watch=0 &nbsp; campusx=1 &nbsp; for=2 &nbsp; data=3 &nbsp; science=4</span>
+  </div>
+  <div class="subsec" style="margin-top:1rem">One-Hot Encodings (V = 5 dimensions)</div>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Word</th><th>Idx</th><th>[0]</th><th>[1]</th><th>[2]</th><th>[3]</th><th>[4]</th></tr>
+      <tr><td>watch</td><td>0</td><td style="color:#ffdd44;font-weight:bold">1</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr class="row-hl"><td>campusx</td><td>1</td><td>0</td><td style="color:#ffdd44;font-weight:bold">1</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><td>for</td><td>2</td><td>0</td><td>0</td><td style="color:#ffdd44;font-weight:bold">1</td><td>0</td><td>0</td></tr>
+      <tr class="row-hl"><td>data</td><td>3</td><td>0</td><td>0</td><td>0</td><td style="color:#ffdd44;font-weight:bold">1</td><td>0</td></tr>
+      <tr><td>science</td><td>4</td><td>0</td><td>0</td><td>0</td><td>0</td><td style="color:#ffdd44;font-weight:bold">1</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PART 2: TRAINING PAIRS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec"><span>PART 2</span> All Positive Training Pairs (Window = 2)</div>
+
+<div class="card">
+  <div class="intuition">
+    <strong>Rule:</strong> For each center word at position <em>p</em>, context includes every word within positions <em>p−2</em> to <em>p+2</em> (excluding the center itself). Words that don't exist (before start / after end) are simply skipped.
+  </div>
+  <div class="code" style="margin-top:.8rem">
+<span class="c-gray">Corpus: &nbsp;[watch(0)] &nbsp;[campusx(1)] &nbsp;[for(2)] &nbsp;[data(3)] &nbsp;[science(4)]</span><br>
+<br>
+<span class="c-amber">Center = watch(0)</span> &nbsp;&nbsp;→ &nbsp; window covers pos −2 to +2 &nbsp;&nbsp;(only right side exists)<br>
+&nbsp;&nbsp;context: <span class="c-green">campusx(1)</span>, <span class="c-green">for(2)</span><br>
+&nbsp;&nbsp;pairs: <span class="c-green">(watch → campusx), (watch → for)</span><br>
+<br>
+<span class="c-amber">Center = campusx(1)</span> → &nbsp; window covers pos −1 to +3<br>
+&nbsp;&nbsp;context: <span class="c-green">watch(0)</span>, <span class="c-green">for(2)</span>, <span class="c-green">data(3)</span><br>
+&nbsp;&nbsp;pairs: <span class="c-green">(campusx → watch), (campusx → for), (campusx → data)</span><br>
+<br>
+<span class="c-amber">Center = for(2)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ &nbsp; window covers pos 0 to +4<br>
+&nbsp;&nbsp;context: <span class="c-green">watch(0)</span>, <span class="c-green">campusx(1)</span>, <span class="c-green">data(3)</span>, <span class="c-green">science(4)</span><br>
+&nbsp;&nbsp;pairs: <span class="c-green">(for → watch), (for → campusx), (for → data), (for → science)</span><br>
+<br>
+<span class="c-amber">Center = data(3)</span> &nbsp;&nbsp;&nbsp;&nbsp;→ &nbsp; window covers pos 1 to +5<br>
+&nbsp;&nbsp;context: <span class="c-green">campusx(1)</span>, <span class="c-green">for(2)</span>, <span class="c-green">science(4)</span><br>
+&nbsp;&nbsp;pairs: <span class="c-green">(data → campusx), (data → for), (data → science)</span><br>
+<br>
+<span class="c-amber">Center = science(4)</span> &nbsp;→ &nbsp; window covers pos 2 to +6 &nbsp;&nbsp;(only left side exists)<br>
+&nbsp;&nbsp;context: <span class="c-green">for(2)</span>, <span class="c-green">data(3)</span><br>
+&nbsp;&nbsp;pairs: <span class="c-green">(science → for), (science → data)</span><br>
+<br>
+<span class="c-gray">───────────────────────────────────────────────────────</span><br>
+<span class="c-teal">Total positive pairs = 14 &nbsp;| &nbsp;We will simulate 3 of these pairs in detail below.</span>
+  </div>
+
+  <div class="subsec" style="margin-top:1rem">3 Training Pairs chosen for simulation</div>
+  <table>
+    <tr><th>Step</th><th>Center word</th><th>Positive context</th><th>Neg sample 1</th><th>Neg sample 2</th></tr>
+    <tr class="row-pos"><td><strong>Step 1</strong></td><td>campusx (1)</td><td>for (2)</td><td>watch (0)</td><td>data (3)</td></tr>
+    <tr class="row-pos"><td><strong>Step 2</strong></td><td>for (2)</td><td>campusx (1)</td><td>science (4)</td><td>data (3)</td></tr>
+    <tr class="row-pos"><td><strong>Step 3</strong></td><td>campusx (1)</td><td>watch (0)</td><td>science (4)</td><td>data (3)</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PART 3: INIT WEIGHTS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec"><span>PART 3</span> Initial Weight Matrices (Random Initialization)</div>
+
+<div class="card">
+  <div class="intuition">
+    In SGNS there are <strong>TWO separate matrices</strong>:<br>
+    &nbsp;&nbsp;• <strong style="color:#88aaff">W</strong> (input/embedding matrix, V×N = 5×3) — stores the embedding of each word when it acts as a CENTER word.<br>
+    &nbsp;&nbsp;• <strong style="color:#ffaa66">W'</strong> (context/output matrix, V×N = 5×3) — stores a separate vector for each word when it acts as a CONTEXT word.<br>
+    Both are initialized randomly. After training, W is used as the final word embeddings.
+  </div>
+  <div class="code" style="margin-top:.8rem">
+<span class="c-gray"># W — Input/Embedding matrix (5×3) — rows = input embeddings</span><br>
+<span class="c-blue">W = [</span><br>
+&nbsp; <span class="c-amber">watch(0)  :</span> <span class="c-white">[ 0.1,  0.2,  0.3 ]</span><br>
+&nbsp; <span class="c-amber">campusx(1):</span> <span class="c-yellow">[ 0.4,  0.5,  0.6 ]</span> &nbsp;<span class="c-gray">← center word embedding</span><br>
+&nbsp; <span class="c-amber">for(2)    :</span> <span class="c-white">[ 0.7,  0.8,  0.9 ]</span><br>
+&nbsp; <span class="c-amber">data(3)   :</span> <span class="c-white">[ 0.1,  0.2,  0.1 ]</span><br>
+&nbsp; <span class="c-amber">science(4):</span> <span class="c-white">[ 0.3,  0.4,  0.5 ]</span><br>
+<span class="c-blue">]</span><br>
+<br>
+<span class="c-gray"># W' — Context/Output matrix (5×3) — rows = context embeddings</span><br>
+<span class="c-pink">W' = [</span><br>
+&nbsp; <span class="c-amber">watch(0)  :</span> <span class="c-white">[ 0.2,  0.1,  0.3 ]</span><br>
+&nbsp; <span class="c-amber">campusx(1):</span> <span class="c-white">[ 0.3,  0.5,  0.2 ]</span><br>
+&nbsp; <span class="c-amber">for(2)    :</span> <span class="c-yellow">[ 0.6,  0.4,  0.5 ]</span> &nbsp;<span class="c-gray">← context embedding</span><br>
+&nbsp; <span class="c-amber">data(3)   :</span> <span class="c-white">[ 0.2,  0.3,  0.1 ]</span><br>
+&nbsp; <span class="c-amber">science(4):</span> <span class="c-white">[ 0.4,  0.2,  0.6 ]</span><br>
+<span class="c-pink">]</span>
+  </div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TRAINING STEP 1 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec"><span>STEP 1</span> Center = campusx &nbsp;|&nbsp; Positive = for &nbsp;|&nbsp; Negatives = watch, data</div>
+
+<div class="step-wrap">
+
+  <!-- 1A: LOOK UP VECTORS -->
+  <div class="step-box">
+    <div class="step-num">1-A</div>
+    <div class="step-title">Look up vectors for all involved words</div>
+    <div class="code">
+<span class="c-gray"># From W (input matrix) — center word embedding</span><br>
+<span class="c-blue">v_campusx</span> = W[1] = <span class="c-yellow">[ 0.4,  0.5,  0.6 ]</span> &nbsp;<span class="tag-ctr">center</span><br>
+<br>
+<span class="c-gray"># From W' (context matrix) — context word embeddings</span><br>
+<span class="c-green">v'_for</span>     = W'[2] = <span class="c-green">[ 0.6,  0.4,  0.5 ]</span> &nbsp;<span class="tag-pos">positive</span><br>
+<span class="c-red">v'_watch</span>   = W'[0] = <span class="c-red">[ 0.2,  0.1,  0.3 ]</span> &nbsp;<span class="tag-neg">negative 1</span><br>
+<span class="c-red">v'_data</span>    = W'[3] = <span class="c-red">[ 0.2,  0.3,  0.1 ]</span> &nbsp;<span class="tag-neg">negative 2</span>
+    </div>
+  </div>
+
+  <!-- 1B: DOT PRODUCTS -->
+  <div class="step-box">
+    <div class="step-num">1-B</div>
+    <div class="step-title">Compute dot product scores  (score = v_center · v'_context)</div>
+    <div class="code">
+<span class="c-gray">━━━ Positive pair: campusx · for ━━━</span><br>
+s_pos &nbsp;= (0.4×<span class="c-green">0.6</span>) + (0.5×<span class="c-green">0.4</span>) + (0.6×<span class="c-green">0.5</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0.240 + 0.200 + 0.300<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="c-yellow">0.740</span><br>
+<br>
+<span class="c-gray">━━━ Negative pair 1: campusx · watch ━━━</span><br>
+s_neg1 = (0.4×<span class="c-red">0.2</span>) + (0.5×<span class="c-red">0.1</span>) + (0.6×<span class="c-red">0.3</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0.080 + 0.050 + 0.180<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="c-yellow">0.310</span><br>
+<br>
+<span class="c-gray">━━━ Negative pair 2: campusx · data ━━━</span><br>
+s_neg2 = (0.4×<span class="c-red">0.2</span>) + (0.5×<span class="c-red">0.3</span>) + (0.6×<span class="c-red">0.1</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0.080 + 0.150 + 0.060<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="c-yellow">0.290</span>
+    </div>
+  </div>
+
+  <!-- 1C: SIGMOID -->
+  <div class="step-box">
+    <div class="step-num">1-C</div>
+    <div class="step-title">Apply Sigmoid  σ(x) = 1/(1 + e^(−x))</div>
+    <div class="intuition" style="margin-bottom:.8rem">
+      <strong>Positive pair:</strong> σ(s_pos) → want this near <strong style="color:#44ee66">1</strong> (they ARE neighbors)<br>
+      <strong>Negative pair:</strong> σ(−s_neg) → want this near <strong style="color:#44ee66">1</strong> (this = probability they are NOT neighbors)
+    </div>
+    <div class="code">
+<span class="c-gray">━━━ Positive ━━━</span><br>
+σ(s_pos) &nbsp;= σ(0.740) = 1/(1 + e^(−0.740)) = 1/(1 + 0.4772) = <span class="c-green">0.677</span><br>
+<span class="c-gray">Interpretation: model says 67.7% chance campusx &amp; for are neighbors. Want → 100%</span><br>
+<br>
+<span class="c-gray">━━━ Negative 1 ━━━</span><br>
+σ(−s_neg1) = σ(−0.310) = 1/(1 + e^(0.310)) = 1/(1 + 1.3634) = <span class="c-red">0.423</span><br>
+<span class="c-gray">Interpretation: model says 42.3% chance they are NOT neighbors. Want → 100%</span><br>
+<br>
+<span class="c-gray">━━━ Negative 2 ━━━</span><br>
+σ(−s_neg2) = σ(−0.290) = 1/(1 + e^(0.290)) = 1/(1 + 1.3365) = <span class="c-red">0.428</span><br>
+<span class="c-gray">Interpretation: model says 42.8% chance they are NOT neighbors. Want → 100%</span>
+    </div>
+  </div>
+
+  <!-- 1D: LOSS -->
+  <div class="step-box">
+    <div class="step-num">1-D</div>
+    <div class="step-title">Compute Loss  L = −log σ(s_pos) − log σ(−s_neg1) − log σ(−s_neg2)</div>
+    <div class="code">
+L = −log(<span class="c-green">0.677</span>) &nbsp; − &nbsp; log(<span class="c-red">0.423</span>) &nbsp; − &nbsp; log(<span class="c-red">0.428</span>)<br>
+&nbsp; = &nbsp; 0.390 &nbsp;&nbsp;&nbsp;&nbsp; + &nbsp; 0.860 &nbsp;&nbsp;&nbsp;&nbsp; + &nbsp; 0.848<br>
+<span class="c-yellow">&nbsp; = &nbsp; 2.098</span>
+    </div>
+    <div class="loss-box">
+      <div class="label">Step 1 Loss</div>
+      <span style="color:#ff6666;font-size:1.1rem;font-weight:bold">L₁ = 2.098</span>
+      <span style="color:#888;font-size:.8rem;font-family:sans-serif;margin-left:10px">(high → model is not trained yet, need to reduce this)</span>
+    </div>
+  </div>
+
+  <!-- 1E: GRADIENTS -->
+  <div class="step-box">
+    <div class="step-num">1-E</div>
+    <div class="step-title">Compute Gradients (Chain Rule)</div>
+    <div class="intuition" style="margin-bottom:.8rem">
+      <strong>Key formulas:</strong><br>
+      &nbsp;∂L/∂s_pos &nbsp;&nbsp;= −(1 − σ(s_pos)) &nbsp;← error for positive pair<br>
+      &nbsp;∂L/∂s_neg_k = σ(s_neg_k) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← error for each negative pair<br>
+      &nbsp;Then: ∂L/∂v_center = Σ (∂L/∂s_k) × v'_context_k &nbsp;&nbsp;(sum over pos + all negs)<br>
+      &nbsp;And: &nbsp;∂L/∂v'_context_k = (∂L/∂s_k) × v_center
+    </div>
+    <div class="code">
+<span class="c-gray">━━━ Step 1: Scalar error terms ━━━</span><br>
+err_pos  = −(1 − σ(0.740)) = −(1 − 0.677) = <span class="c-green">−0.323</span><br>
+err_neg1 = σ(s_neg1) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= σ(0.310) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="c-red">0.577</span><br>
+err_neg2 = σ(s_neg2) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= σ(0.290) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="c-red">0.572</span><br>
+<br>
+<span class="c-gray"># σ(0.310) = 1/(1+e^−0.310) = 1/(1+0.7334) = 0.577</span><br>
+<span class="c-gray"># σ(0.290) = 1/(1+e^−0.290) = 1/(1+0.7483) = 0.572</span><br>
+<br>
+<span class="c-gray">━━━ Step 2: Gradient w.r.t. v_campusx (center word in W) ━━━</span><br>
+<span class="c-gray"># = sum of: (error × context_vector) for each pair</span><br>
+∂L/∂v_campusx<br>
+&nbsp; = err_pos  × v'_for   + err_neg1 × v'_watch  + err_neg2 × v'_data<br>
+&nbsp; = <span class="c-green">−0.323</span> × [0.6,0.4,0.5]<br>
+&nbsp; + <span class="c-red"> 0.577</span> × [0.2,0.1,0.3]<br>
+&nbsp; + <span class="c-red"> 0.572</span> × [0.2,0.3,0.1]<br>
+<br>
+&nbsp; = [<span class="c-green">−0.194, −0.129, −0.162</span>]<br>
+&nbsp; + [<span class="c-red"> 0.115, &nbsp;0.058, &nbsp;0.173</span>]<br>
+&nbsp; + [<span class="c-red"> 0.114, &nbsp;0.172, &nbsp;0.057</span>]<br>
+&nbsp; = <span class="c-yellow">[ 0.035, &nbsp;0.101, &nbsp;0.068 ]</span><br>
+<br>
+<span class="c-gray">━━━ Step 3: Gradient w.r.t. each context vector in W' ━━━</span><br>
+<span class="c-gray"># = (error) × v_center</span><br>
+∂L/∂v'_for   = err_pos  × v_campusx = <span class="c-green">−0.323</span> × [0.4,0.5,0.6] = <span class="c-green">[ −0.129, −0.162, −0.194 ]</span><br>
+∂L/∂v'_watch = err_neg1 × v_campusx = <span class="c-red"> 0.577</span> × [0.4,0.5,0.6] = <span class="c-red">[  0.231, &nbsp;0.289, &nbsp;0.346 ]</span><br>
+∂L/∂v'_data  = err_neg2 × v_campusx = <span class="c-red"> 0.572</span> × [0.4,0.5,0.6] = <span class="c-red">[  0.229, &nbsp;0.286, &nbsp;0.343 ]</span>
+    </div>
+  </div>
+
+  <!-- 1F: UPDATES -->
+  <div class="step-box">
+    <div class="step-num">1-F</div>
+    <div class="step-title">Update Weights  (new = old − η × gradient,  η = 0.1)</div>
+    <div class="code">
+<span class="c-gray">━━━ Update W[1] (campusx center embedding) ━━━</span><br>
+W[1]_new = [0.4, 0.5, 0.6] − 0.1 × [0.035, 0.101, 0.068]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.4−0.004, 0.5−0.010, 0.6−0.007]<br>
+<span class="c-yellow">         = [ 0.397, &nbsp;0.490, &nbsp;0.593 ]</span><br>
+<br>
+<span class="c-gray">━━━ Update W'[2] (for context embedding) — POSITIVE ━━━</span><br>
+W'[2]_new = [0.6, 0.4, 0.5] − 0.1 × [−0.129, −0.162, −0.194]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.6+0.013, 0.4+0.016, 0.5+0.019]<br>
+<span class="c-green">          = [ 0.613, &nbsp;0.416, &nbsp;0.519 ]</span> &nbsp;<span class="c-gray">← moved TOWARD campusx</span><br>
+<br>
+<span class="c-gray">━━━ Update W'[0] (watch context embedding) — NEGATIVE ━━━</span><br>
+W'[0]_new = [0.2, 0.1, 0.3] − 0.1 × [0.231, 0.289, 0.346]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.2−0.023, 0.1−0.029, 0.3−0.035]<br>
+<span class="c-red">          = [ 0.177, &nbsp;0.071, &nbsp;0.265 ]</span> &nbsp;<span class="c-gray">← pushed AWAY from campusx</span><br>
+<br>
+<span class="c-gray">━━━ Update W'[3] (data context embedding) — NEGATIVE ━━━</span><br>
+W'[3]_new = [0.2, 0.3, 0.1] − 0.1 × [0.229, 0.286, 0.343]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.2−0.023, 0.3−0.029, 0.1−0.034]<br>
+<span class="c-red">          = [ 0.177, &nbsp;0.271, &nbsp;0.066 ]</span> &nbsp;<span class="c-gray">← pushed AWAY from campusx</span>
+    </div>
+    <div class="update-box">
+      <div class="label">Weights after Step 1</div>
+      <span style="color:#aaffaa;font-family:sans-serif;font-size:.82rem">
+        W[1] (campusx): [0.397, 0.490, 0.593] &nbsp;|&nbsp;
+        W'[2] (for): [0.613, 0.416, 0.519] &nbsp;|&nbsp;
+        W'[0] (watch): [0.177, 0.071, 0.265] &nbsp;|&nbsp;
+        W'[3] (data): [0.177, 0.271, 0.066]
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TRAINING STEP 2 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec"><span>STEP 2</span> Center = for &nbsp;|&nbsp; Positive = campusx &nbsp;|&nbsp; Negatives = science, data</div>
+
+<div class="step-wrap">
+
+  <div class="step-box card-amber">
+    <div class="step-num">2-A</div>
+    <div class="step-title">Look up vectors (using UPDATED weights from Step 1)</div>
+    <div class="code">
+<span class="c-gray"># W[2] (for as center) — NOT changed in step 1</span><br>
+<span class="c-blue">v_for</span> = W[2] = <span class="c-yellow">[ 0.7, &nbsp;0.8, &nbsp;0.9 ]</span> &nbsp;<span class="tag-ctr">center</span><br>
+<br>
+<span class="c-gray"># W' context vectors — campusx NOT updated in step 1, data WAS updated</span><br>
+<span class="c-green">v'_campusx</span> = W'[1] = <span class="c-green">[ 0.3, &nbsp;0.5, &nbsp;0.2 ]</span> &nbsp;<span class="tag-pos">positive</span><br>
+<span class="c-red">v'_science</span> = W'[4] = <span class="c-red">[ 0.4, &nbsp;0.2, &nbsp;0.6 ]</span> &nbsp;<span class="tag-neg">negative 1</span><br>
+<span class="c-red">v'_data</span>    = W'[3] = <span class="c-red">[ 0.177, 0.271, 0.066 ]</span> &nbsp;<span class="tag-neg">negative 2 (updated!)</span>
+    </div>
+  </div>
+
+  <div class="step-box card-amber">
+    <div class="step-num">2-B</div>
+    <div class="step-title">Dot product scores</div>
+    <div class="code">
+s_pos  = (0.7×<span class="c-green">0.3</span>) + (0.8×<span class="c-green">0.5</span>) + (0.9×<span class="c-green">0.2</span>) = 0.210+0.400+0.180 = <span class="c-yellow">0.790</span><br>
+s_neg1 = (0.7×<span class="c-red">0.4</span>) + (0.8×<span class="c-red">0.2</span>) + (0.9×<span class="c-red">0.6</span>) = 0.280+0.160+0.540 = <span class="c-yellow">0.980</span><br>
+s_neg2 = (0.7×<span class="c-red">0.177</span>)+(0.8×<span class="c-red">0.271</span>)+(0.9×<span class="c-red">0.066</span>) = 0.124+0.217+0.059 = <span class="c-yellow">0.400</span>
+    </div>
+  </div>
+
+  <div class="step-box card-amber">
+    <div class="step-num">2-C</div>
+    <div class="step-title">Sigmoid values</div>
+    <div class="code">
+σ(s_pos) &nbsp;&nbsp;&nbsp;= σ( 0.790) = 1/(1+e^−0.790) = 1/(1+0.4538) = <span class="c-green">0.688</span><br>
+σ(−s_neg1) = σ(−0.980) = 1/(1+e^&nbsp;0.980) = 1/(1+2.6645) = <span class="c-red">0.273</span> &nbsp;<span class="c-gray">← very bad! science too close to for</span><br>
+σ(−s_neg2) = σ(−0.400) = 1/(1+e^&nbsp;0.400) = 1/(1+1.4918) = <span class="c-red">0.401</span>
+    </div>
+  </div>
+
+  <div class="step-box card-amber">
+    <div class="step-num">2-D</div>
+    <div class="step-title">Loss</div>
+    <div class="code">
+L = −log(0.688) − log(0.273) − log(0.401)<br>
+&nbsp; = &nbsp;0.374 &nbsp;&nbsp;&nbsp;&nbsp;+ &nbsp;1.299 &nbsp;&nbsp;&nbsp;&nbsp;+ &nbsp;0.913<br>
+<span class="c-yellow">&nbsp; = &nbsp;2.586</span> &nbsp;<span class="c-gray">← higher than step 1 because science was incorrectly close to for</span>
+    </div>
+  </div>
+
+  <div class="step-box card-amber">
+    <div class="step-num">2-E</div>
+    <div class="step-title">Gradients</div>
+    <div class="code">
+<span class="c-gray">━━━ Scalar error terms ━━━</span><br>
+err_pos  = −(1 − 0.688) = <span class="c-green">−0.312</span><br>
+err_neg1 = σ(0.980) = 1/(1+e^−0.980) = 1/(1+0.3753) = <span class="c-red">0.727</span><br>
+err_neg2 = σ(0.400) = 1/(1+e^−0.400) = 1/(1+0.6703) = <span class="c-red">0.599</span><br>
+<br>
+<span class="c-gray">━━━ Gradient w.r.t. v_for (center) ━━━</span><br>
+∂L/∂v_for<br>
+&nbsp; = <span class="c-green">−0.312</span> × [0.3, 0.5, 0.2] + <span class="c-red">0.727</span> × [0.4, 0.2, 0.6] + <span class="c-red">0.599</span> × [0.177, 0.271, 0.066]<br>
+&nbsp; = [−0.094, −0.156, −0.062]<br>
+&nbsp; + [ 0.291, &nbsp;0.145, &nbsp;0.436]<br>
+&nbsp; + [ 0.106, &nbsp;0.162, &nbsp;0.040]<br>
+&nbsp; = <span class="c-yellow">[ 0.303, &nbsp;0.151, &nbsp;0.414 ]</span><br>
+<br>
+<span class="c-gray">━━━ Gradients w.r.t. context vectors in W' ━━━</span><br>
+∂L/∂v'_campusx = <span class="c-green">−0.312</span> × [0.7,0.8,0.9] = <span class="c-green">[ −0.218, −0.250, −0.281 ]</span><br>
+∂L/∂v'_science = <span class="c-red"> 0.727</span> × [0.7,0.8,0.9] = <span class="c-red">[  0.509, &nbsp;0.582, &nbsp;0.654 ]</span><br>
+∂L/∂v'_data    = <span class="c-red"> 0.599</span> × [0.7,0.8,0.9] = <span class="c-red">[  0.419, &nbsp;0.479, &nbsp;0.539 ]</span>
+    </div>
+  </div>
+
+  <div class="step-box card-amber">
+    <div class="step-num">2-F</div>
+    <div class="step-title">Weight Updates</div>
+    <div class="code">
+<span class="c-gray">━━━ W[2] (for input embedding) ━━━</span><br>
+W[2]_new = [0.7, 0.8, 0.9] − 0.1×[0.303, 0.151, 0.414]<br>
+<span class="c-yellow">         = [ 0.670, &nbsp;0.785, &nbsp;0.859 ]</span><br>
+<br>
+<span class="c-gray">━━━ W'[1] (campusx context) — POSITIVE, pulled closer to for ━━━</span><br>
+W'[1]_new = [0.3, 0.5, 0.2] − 0.1×[−0.218, −0.250, −0.281]<br>
+<span class="c-green">          = [ 0.322, &nbsp;0.525, &nbsp;0.228 ]</span><br>
+<br>
+<span class="c-gray">━━━ W'[4] (science context) — NEGATIVE, pushed away from for ━━━</span><br>
+W'[4]_new = [0.4, 0.2, 0.6] − 0.1×[0.509, 0.582, 0.654]<br>
+<span class="c-red">          = [ 0.349, &nbsp;0.142, &nbsp;0.535 ]</span><br>
+<br>
+<span class="c-gray">━━━ W'[3] (data context) — NEGATIVE again, pushed further from for ━━━</span><br>
+W'[3]_new = [0.177, 0.271, 0.066] − 0.1×[0.419, 0.479, 0.539]<br>
+<span class="c-red">          = [ 0.135, &nbsp;0.223, &nbsp;0.012 ]</span>
+    </div>
+    <div class="update-box">
+      <div class="label">Weights after Step 2</div>
+      <span style="color:#aaffaa;font-family:sans-serif;font-size:.82rem">
+        W[2] (for): [0.670, 0.785, 0.859] &nbsp;|&nbsp;
+        W'[1] (campusx): [0.322, 0.525, 0.228] &nbsp;|&nbsp;
+        W'[4] (science): [0.349, 0.142, 0.535] &nbsp;|&nbsp;
+        W'[3] (data): [0.135, 0.223, 0.012]
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TRAINING STEP 3 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec"><span>STEP 3</span> Center = campusx &nbsp;|&nbsp; Positive = watch &nbsp;|&nbsp; Negatives = science, data</div>
+
+<div class="step-wrap">
+
+  <div class="step-box card-blue">
+    <div class="step-num">3-A</div>
+    <div class="step-title">Look up vectors (using latest updated weights)</div>
+    <div class="code">
+<span class="c-gray"># W[1] (campusx center) — updated in step 1</span><br>
+<span class="c-blue">v_campusx</span> = W[1] = <span class="c-yellow">[ 0.397, &nbsp;0.490, &nbsp;0.593 ]</span> &nbsp;<span class="tag-ctr">center</span><br>
+<br>
+<span class="c-gray"># W' context vectors</span><br>
+<span class="c-green">v'_watch</span>   = W'[0] = <span class="c-green">[ 0.177, &nbsp;0.071, &nbsp;0.265 ]</span> &nbsp;<span class="tag-pos">positive (updated in step 1)</span><br>
+<span class="c-red">v'_science</span> = W'[4] = <span class="c-red">[ 0.349, &nbsp;0.142, &nbsp;0.535 ]</span> &nbsp;<span class="tag-neg">negative 1 (updated in step 2)</span><br>
+<span class="c-red">v'_data</span>    = W'[3] = <span class="c-red">[ 0.135, &nbsp;0.223, &nbsp;0.012 ]</span> &nbsp;<span class="tag-neg">negative 2 (updated in steps 1 &amp; 2)</span>
+    </div>
+  </div>
+
+  <div class="step-box card-blue">
+    <div class="step-num">3-B</div>
+    <div class="step-title">Dot product scores</div>
+    <div class="code">
+s_pos  = (0.397×<span class="c-green">0.177</span>)+(0.490×<span class="c-green">0.071</span>)+(0.593×<span class="c-green">0.265</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0.070 + 0.035 + 0.157 = <span class="c-yellow">0.262</span><br>
+<br>
+s_neg1 = (0.397×<span class="c-red">0.349</span>)+(0.490×<span class="c-red">0.142</span>)+(0.593×<span class="c-red">0.535</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0.139 + 0.070 + 0.317 = <span class="c-yellow">0.526</span><br>
+<br>
+s_neg2 = (0.397×<span class="c-red">0.135</span>)+(0.490×<span class="c-red">0.223</span>)+(0.593×<span class="c-red">0.012</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0.054 + 0.109 + 0.007 = <span class="c-yellow">0.170</span>
+    </div>
+  </div>
+
+  <div class="step-box card-blue">
+    <div class="step-num">3-C</div>
+    <div class="step-title">Sigmoid values</div>
+    <div class="code">
+σ(s_pos)   = σ( 0.262) = 1/(1+e^−0.262) = 1/(1+0.770) = <span class="c-green">0.565</span><br>
+σ(−s_neg1) = σ(−0.526) = 1/(1+e^&nbsp;0.526) = 1/(1+1.692) = <span class="c-red">0.371</span><br>
+σ(−s_neg2) = σ(−0.170) = 1/(1+e^&nbsp;0.170) = 1/(1+1.185) = <span class="c-red">0.458</span>
+    </div>
+  </div>
+
+  <div class="step-box card-blue">
+    <div class="step-num">3-D</div>
+    <div class="step-title">Loss</div>
+    <div class="code">
+L = −log(0.565) − log(0.371) − log(0.458)<br>
+&nbsp; = &nbsp;0.571 &nbsp;&nbsp;&nbsp;&nbsp;+ &nbsp;0.991 &nbsp;&nbsp;&nbsp;&nbsp;+ &nbsp;0.782<br>
+<span class="c-yellow">&nbsp; = &nbsp;2.344</span>
+    </div>
+  </div>
+
+  <div class="step-box card-blue">
+    <div class="step-num">3-E</div>
+    <div class="step-title">Gradients</div>
+    <div class="code">
+err_pos  = −(1 − 0.565) = <span class="c-green">−0.435</span><br>
+err_neg1 = σ(0.526) = 1/(1+e^−0.526) = 1/(1+0.591) = <span class="c-red">0.629</span><br>
+err_neg2 = σ(0.170) = 1/(1+e^−0.170) = 1/(1+0.844) = <span class="c-red">0.542</span><br>
+<br>
+∂L/∂v_campusx<br>
+&nbsp; = <span class="c-green">−0.435</span>×[0.177,0.071,0.265] + <span class="c-red">0.629</span>×[0.349,0.142,0.535] + <span class="c-red">0.542</span>×[0.135,0.223,0.012]<br>
+&nbsp; = [−0.077, −0.031, −0.115]<br>
+&nbsp; + [ 0.220, &nbsp;0.089, &nbsp;0.337]<br>
+&nbsp; + [ 0.073, &nbsp;0.121, &nbsp;0.007]<br>
+&nbsp; = <span class="c-yellow">[ 0.216, &nbsp;0.179, &nbsp;0.229 ]</span><br>
+<br>
+∂L/∂v'_watch   = <span class="c-green">−0.435</span>×[0.397,0.490,0.593] = <span class="c-green">[ −0.173, −0.213, −0.258 ]</span><br>
+∂L/∂v'_science = <span class="c-red"> 0.629</span>×[0.397,0.490,0.593] = <span class="c-red">[  0.250, &nbsp;0.308, &nbsp;0.373 ]</span><br>
+∂L/∂v'_data    = <span class="c-red"> 0.542</span>×[0.397,0.490,0.593] = <span class="c-red">[  0.215, &nbsp;0.266, &nbsp;0.321 ]</span>
+    </div>
+  </div>
+
+  <div class="step-box card-blue">
+    <div class="step-num">3-F</div>
+    <div class="step-title">Weight Updates</div>
+    <div class="code">
+<span class="c-gray">━━━ W[1] (campusx input embedding) ━━━</span><br>
+W[1]_new = [0.397, 0.490, 0.593] − 0.1×[0.216, 0.179, 0.229]<br>
+<span class="c-yellow">         = [ 0.375, &nbsp;0.472, &nbsp;0.570 ]</span><br>
+<br>
+<span class="c-gray">━━━ W'[0] (watch context) — POSITIVE, pulled toward campusx ━━━</span><br>
+W'[0]_new = [0.177, 0.071, 0.265] − 0.1×[−0.173, −0.213, −0.258]<br>
+<span class="c-green">          = [ 0.194, &nbsp;0.092, &nbsp;0.291 ]</span><br>
+<br>
+<span class="c-gray">━━━ W'[4] (science context) — NEGATIVE again ━━━</span><br>
+W'[4]_new = [0.349, 0.142, 0.535] − 0.1×[0.250, 0.308, 0.373]<br>
+<span class="c-red">          = [ 0.324, &nbsp;0.111, &nbsp;0.498 ]</span><br>
+<br>
+<span class="c-gray">━━━ W'[3] (data context) — NEGATIVE again ━━━</span><br>
+W'[3]_new = [0.135, 0.223, 0.012] − 0.1×[0.215, 0.266, 0.321]<br>
+<span class="c-red">          = [ 0.114, &nbsp;0.196, −0.020 ]</span>
+    </div>
+    <div class="update-box">
+      <div class="label">Final weights after Step 3</div>
+      <span style="color:#aaffaa;font-family:sans-serif;font-size:.82rem">
+        W[1] (campusx): [0.375, 0.472, 0.570] &nbsp;|&nbsp;
+        W'[0] (watch): [0.194, 0.092, 0.291] &nbsp;|&nbsp;
+        W'[4] (science): [0.324, 0.111, 0.498] &nbsp;|&nbsp;
+        W'[3] (data): [0.114, 0.196, −0.020]
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="sep"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- FINAL COMPARISON -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec"><span>RESULT</span> Before vs After — What did training achieve?</div>
+
+<div class="card">
+  <div class="subsec">W matrix (input embeddings) — Before vs After 3 steps</div>
+  <table>
+    <tr><th>Word</th><th>Before [0]</th><th>Before [1]</th><th>Before [2]</th><th>After [0]</th><th>After [1]</th><th>After [2]</th></tr>
+    <tr><td>watch</td><td>0.100</td><td>0.200</td><td>0.300</td><td>0.100</td><td>0.200</td><td>0.300</td></tr>
+    <tr class="row-update"><td>campusx ✦</td><td>0.400</td><td>0.500</td><td>0.600</td><td>0.375</td><td>0.472</td><td>0.570</td></tr>
+    <tr class="row-update"><td>for ✦</td><td>0.700</td><td>0.800</td><td>0.900</td><td>0.670</td><td>0.785</td><td>0.859</td></tr>
+    <tr><td>data</td><td>0.100</td><td>0.200</td><td>0.100</td><td>0.100</td><td>0.200</td><td>0.100</td></tr>
+    <tr><td>science</td><td>0.300</td><td>0.400</td><td>0.500</td><td>0.300</td><td>0.400</td><td>0.500</td></tr>
+  </table>
+
+  <div class="subsec" style="margin-top:1.2rem">W' matrix (context embeddings) — Before vs After</div>
+  <table>
+    <tr><th>Word</th><th>Before [0]</th><th>Before [1]</th><th>Before [2]</th><th>After [0]</th><th>After [1]</th><th>After [2]</th><th>Change</th></tr>
+    <tr class="row-update"><td>watch ✦</td><td>0.200</td><td>0.100</td><td>0.300</td><td>0.194</td><td>0.092</td><td>0.291</td><td style="color:#ffaa44;font-family:sans-serif">→ campusx</td></tr>
+    <tr class="row-update"><td>campusx ✦</td><td>0.300</td><td>0.500</td><td>0.200</td><td>0.322</td><td>0.525</td><td>0.228</td><td style="color:#ffaa44;font-family:sans-serif">→ for</td></tr>
+    <tr><td>for</td><td>0.600</td><td>0.400</td><td>0.500</td><td>0.613</td><td>0.416</td><td>0.519</td><td style="color:#44dd66;font-family:sans-serif">→ campusx</td></tr>
+    <tr class="row-neg"><td>data ✘</td><td>0.200</td><td>0.300</td><td>0.100</td><td>0.114</td><td>0.196</td><td>−0.020</td><td style="color:#ff6666;font-family:sans-serif">← pushed away</td></tr>
+    <tr class="row-neg"><td>science ✘</td><td>0.400</td><td>0.200</td><td>0.600</td><td>0.324</td><td>0.111</td><td>0.498</td><td style="color:#ff6666;font-family:sans-serif">← pushed away</td></tr>
+  </table>
+
+  <div class="subsec" style="margin-top:1.2rem">Loss progression</div>
+  <div class="code">
+Step 1 Loss: <span class="c-red">2.098</span>  (campusx→for, negatives: watch, data)<br>
+Step 2 Loss: <span class="c-red">2.586</span>  (for→campusx, negatives: science, data) ← high because science was very close<br>
+Step 3 Loss: <span class="c-yellow">2.344</span>  (campusx→watch, negatives: science, data) ← improving<br>
+<br>
+<span class="c-gray">With thousands more iterations, loss will converge toward 0.</span>
+  </div>
+</div>
+
+<!-- KEY INSIGHT -->
+<div class="card" style="background:#0a0a20;border:1px solid #5050cc">
+  <div class="subsec">Key Insights from the simulation</div>
+  <div class="intuition">
+    <strong>1. Two separate matrices:</strong> W and W' serve different roles. W gives input embeddings (the final word vectors we care about). W' gives context embeddings (used only during training, discarded after).<br><br>
+    <strong>2. Positive pair = attraction:</strong> v'_for got pulled toward v_campusx because they kept appearing together. The gradient was negative (−0.129, −0.162, −0.194) on W'[2], which reduced the error between them.<br><br>
+    <strong>3. Negative pair = repulsion:</strong> v'_data and v'_science got pushed away from campusx and for. Their vectors shrank in the dimensions where campusx is strong.<br><br>
+    <strong>4. Only updated words:</strong> In each step, only the center word's row in W and the positive + negative words' rows in W' are updated. Other rows are untouched — this is why SGNS is so fast.<br><br>
+    <strong>5. No Softmax needed:</strong> Instead of computing probabilities over all V=5 words (or 3 million in real use), we only compute 3 sigmoid values per step (1 positive + 2 negatives). Speed-up is enormous.
+  </div>
+</div>
+
+<div style="text-align:center;color:#444466;font-size:.75rem;padding:2rem 0;font-family:sans-serif">
+  SGNS Simulation Complete &mdash; 3 training steps &mdash; Window=2 &mdash; k=2 negative samples
+</div>
+
+</div>
+</body>
+</html>
